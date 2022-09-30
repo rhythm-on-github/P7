@@ -6,6 +6,8 @@
 # CUSTOM
 datasets/*
 !datasets/folder.txt
+KGembedding/env/
+KGembedding/doctests/
 
 # User-specific files
 *.rsuser
