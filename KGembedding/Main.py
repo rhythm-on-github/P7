@@ -5,6 +5,7 @@
 #
 # end of documentation
 
+# imports
 import torch
 import argparse
 import os
@@ -12,6 +13,10 @@ import pathlib
 from Classes.Triple import *
 
 
+# --- Settings ---
+
+# NN choice 
+from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
@@ -101,3 +106,6 @@ testFile.close()
 validFile.close()
 
 
+
+
+# --- Training ---
