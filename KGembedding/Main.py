@@ -63,13 +63,38 @@ trainData = []
 testData = []
 validData = []
 
+#only used to: 
+# 1. get the number of unique entities and relations, for one-hot encoding 
+# 2. get their individual indices (key: name, value: index)
+entities = dict()
+entityID = 0
+relations = dict()
+relationID = 0
+
 # Each part of the dataset is loaded the same way
 for (file, data) in [(trainFile, trainData), (testFile, testData), (validFile, validData)]:
 	# Load the specific file's contents, line by line
 	for line in file:
-		split = line.split('\t') #tab-separated 
-		triple = Triple(split[0], split[1], split[2])
+		#load tab-separated triple
+		split = line.split('\t')
+		h = split[0]
+		r = split[1]
+		t = split[2]
+		triple = Triple(h, r, t)
 		data.append(triple)
+		#keep track of unique entities and relations + their indices
+		if h not in entities:
+			entities[h] = entityID
+			entityID += 1
+		if r not in relations:
+			relations[r] = relationID
+			relationID += 1
+		if t not in entities:
+			entities[t] = entityID
+			entityID += 1
+
+entitiesN = len(entities)
+relationsN = len(relations)
 
 trainFile.close()
 testFile.close()
