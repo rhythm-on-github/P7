@@ -10,6 +10,8 @@ import torch
 import argparse
 import os
 import pathlib
+import datetime 
+from datetime import datetime
 from Classes.Triple import *
 
 
@@ -128,6 +130,8 @@ loss_function = torch.nn.BCELoss()
 optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.beta1, 0.999))
 optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999))
 
+# If we had checkpoints it would be here
+epochs_done = 0
 
 # For checking time (0 epochs timestamp)
 now = datetime.now()
