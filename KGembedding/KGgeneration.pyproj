@@ -3,13 +3,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>c4aa5d8e-2cdf-4dbc-96cb-9904972c46f7</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
-    <StartupFile>KGembedding.py</StartupFile>
+    <ProjectHome>
+    </ProjectHome>
+    <StartupFile>Main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>KGembedding</Name>
+    <Name>KGgeneration</Name>
     <RootNamespace>KGembedding</RootNamespace>
     <InterpreterId>Global|PythonCore|3.10</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
@@ -26,10 +27,19 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="KGembedding.py" />
+    <InterpreterReference Include="Global|PythonCore|3.10" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|3.10" />
+    <Compile Include="Classes\Triple.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KGembedding.py" />
+    <Compile Include="Main.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Classes\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
