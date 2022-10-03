@@ -14,7 +14,6 @@ from Classes.Triple import *
 
 
 # --- Settings ---
-
 # NN choice 
 from NNs.simpGAN import *
 
@@ -43,12 +42,12 @@ print(opt)
 
 
 # Dataset directory
-workDir = pathlib.Path().resolve()
-dataDir = os.path.join(workDir.parent.resolve(), 'datasets')
+workDir  = pathlib.Path().resolve()
+dataDir  = os.path.join(workDir.parent.resolve(), 'datasets')
 FB15Kdir = os.path.join(dataDir, 'FB15K-237')
 
 trainDir = os.path.join(FB15Kdir, 'train.txt')
-testDir = os.path.join(FB15Kdir, 'test.txt')
+testDir  = os.path.join(FB15Kdir, 'test.txt')
 validDir = os.path.join(FB15Kdir, 'valid.txt')
 
 
@@ -57,15 +56,22 @@ seed = torch.Generator().seed()
 print("Current seed: " + str(seed))
 
 
+# Computing device
+tryCuda = True 
+cuda = tryCuda and torch.cuda.is_available()
+device = 'cpu'
+if cuda: device = 'cuda:0'
+
+
 
 
 # --- Dataset loading & formatting ---
 trainFile = open(trainDir, 'r')
-testFile = open(testDir, 'r')
+testFile  = open(testDir, 'r')
 validFile = open(validDir, 'r')
 
 trainData = []
-testData = []
+testData  = []
 validData = []
 
 #only used to: 
@@ -73,7 +79,7 @@ validData = []
 # 2. get their individual indices (key: name, value: index)
 entities = dict()
 entityID = 0
-relations = dict()
+relations  = dict()
 relationID = 0
 
 # Each part of the dataset is loaded the same way
@@ -108,4 +114,28 @@ validFile.close()
 
 
 
+
 # --- Training ---
+# setup
+generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+if cuda:
+	generator.to(device)
+	discriminator.to(device)
+Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
+loss_function = torch.nn.BCELoss()
+optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.beta1, 0.999))
+optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999))
+
+
+# For checking time (0 epochs timestamp)
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+time_stamps = [current_time]
+
+# run training loop 
+print("Starting Loop...")
+for epoch in range(epochs_done, opt.n_epochs+1):
+	pass 
+	# TODO next: need to use/make a data loader 
