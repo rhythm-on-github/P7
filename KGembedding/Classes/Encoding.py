@@ -2,6 +2,24 @@ from .Triple import *
 import torch
 import torch.nn as nn
 
+# Allows the dataloaders to be encoded without massive space requirements
+class Encoder(object):
+	def __init(self, data, entities, entN, relations, relN):
+		self.data = data
+		self.entities = entities
+		self.entN = entN
+		self.relations = relations
+		self.relN = relN
+
+	def __getitem__(self, tripleID:int):
+		triple = self.data[tripleID]
+		tripleEnc = encode(triple, self.entities, self.entN, self.relations, self.relN)
+		return tripleEnc
+
+	def __len__(self):
+		return len(self.data)
+
+
 # takes a triple (h,r,t) and encodes it with one-hot encoding
 def encode(triple:Triple, entities, entN, relations, relN):
 	hID = entities[triple.h]

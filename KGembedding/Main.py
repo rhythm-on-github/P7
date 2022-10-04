@@ -14,6 +14,7 @@ import pathlib
 import datetime 
 from datetime import datetime
 from Classes.Triple import *
+from Classes.Encoding import *
 from tqdm import tqdm
 
 
@@ -116,7 +117,10 @@ testFile.close()
 validFile.close()
 
 # make encoded datasets 
+#trainDataEnc = encode(
 
+# make data loaders
+trainDataloader = torch.utils.data.DataLoader(trainDataEnc, batch_size=opt.batch_size, shuffle=True)
 
 
 
@@ -148,4 +152,3 @@ print("Starting Loop...")
 for epoch in tqdm(range(epochs_done, opt.n_epochs+1)):
 	pass 
 	# TODO next: need to use/make a data loader 
-	#torch.utils.data.DataLoader(train_dataset, batch_size=self.opt.batch_size, shuffle=True)
