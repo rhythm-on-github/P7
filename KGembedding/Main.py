@@ -13,6 +13,7 @@ import pathlib
 import datetime 
 from datetime import datetime
 from Classes.Triple import *
+from tqdm import tqdm
 
 
 # --- Settings ---
@@ -140,6 +141,6 @@ time_stamps = [current_time]
 
 # run training loop 
 print("Starting Loop...")
-for epoch in range(epochs_done, opt.n_epochs+1):
+for epoch in tqdm(range(epochs_done, opt.n_epochs+1)):
 	pass 
 	# TODO next: need to use/make a data loader 
