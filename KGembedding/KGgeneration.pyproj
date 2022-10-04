@@ -30,6 +30,9 @@
     <InterpreterReference Include="Global|PythonCore|3.10" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Classes\Encoding.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Classes\Triple.py">
       <SubType>Code</SubType>
     </Compile>

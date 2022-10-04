@@ -7,6 +7,7 @@
 
 # imports
 import torch
+import torch.nn as nn
 import argparse
 import os
 import pathlib
@@ -114,6 +115,9 @@ trainFile.close()
 testFile.close()
 validFile.close()
 
+# make encoded datasets 
+
+
 
 
 
@@ -144,3 +148,4 @@ print("Starting Loop...")
 for epoch in tqdm(range(epochs_done, opt.n_epochs+1)):
 	pass 
 	# TODO next: need to use/make a data loader 
+	#torch.utils.data.DataLoader(train_dataset, batch_size=self.opt.batch_size, shuffle=True)
