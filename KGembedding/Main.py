@@ -13,9 +13,12 @@ import os
 import pathlib
 import datetime 
 from datetime import datetime
+from tqdm import tqdm
+
+# local imports
 from Classes.Triple import *
 from Classes.Encoding import *
-from tqdm import tqdm
+from Classes.Training import *
 
 
 # --- Settings ---
@@ -144,15 +147,31 @@ optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.bet
 optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999))
 
 # If we had checkpoints it would be here
-epochs_done = 0
+epochsDone = 0
+
+# misc data 
+genData = []
 
 # For checking time (0 epochs timestamp)
 now = datetime.now()
-current_time = now.strftime("%H:%M:%S")
-time_stamps = [current_time]
+currentTime = now.strftime("%H:%M:%S")
+timeStamps = [currentTime]
 
 # run training loop 
 print("Starting Loop...")
-for epoch in tqdm(range(epochs_done, opt.n_epochs+1)):
-	pass 
-	# TODO next: need to use a data loader 
+for epoch in tqdm(range(epochsDone, opt.n_epochs+1)):
+	# run an epoch 
+	for i, batch in tqdm(enumerate(trainDataloader)):
+		#run a batch
+
+		# train discriminator
+		#train_discriminator(batch)
+
+		# only train generator every n_critic iterations
+		if(i % opt.n_critic == 0):
+			pass#train_generator()
+
+		# print to terminal
+		if(i % opt.update_interval == 0):
+			pass#print_update()
+			#print(self.optimizer_D.param_groups[0]['betas'])

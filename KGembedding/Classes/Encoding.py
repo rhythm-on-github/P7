@@ -30,7 +30,7 @@ def encode(triple:Triple, entities, entN, relations, relN):
 	rEnc = nn.functional.one_hot(torch.arange(1) + rID, num_classes = relN)
 	tEnc = nn.functional.one_hot(torch.arange(1) + tID, num_classes = entN)
 
-	enc = torch.cat((hEnc, rEnc, tEnc))
+	enc = torch.cat((hEnc, rEnc, tEnc), 1)
 	return enc
 
 
