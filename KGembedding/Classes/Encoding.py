@@ -4,7 +4,7 @@ import torch.nn as nn
 
 # Allows the dataloaders to be encoded without massive space requirements
 class Encoder(object):
-	def __init(self, data, entities, entN, relations, relN):
+	def __init__(self, data, entities, entN, relations, relN):
 		self.data = data
 		self.entities = entities
 		self.entN = entN

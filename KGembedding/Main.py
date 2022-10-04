@@ -116,11 +116,15 @@ trainFile.close()
 testFile.close()
 validFile.close()
 
-# make encoded datasets 
-#trainDataEnc = encode(
+# make dataset encoders
+trainDataEncoder = Encoder(trainData, entities, entitiesN, relations, relationsN)
+testDataEncoder  = Encoder(testData,  entities, entitiesN, relations, relationsN)
+validDataEncoder = Encoder(validData, entities, entitiesN, relations, relationsN)
 
 # make data loaders
-trainDataloader = torch.utils.data.DataLoader(trainDataEnc, batch_size=opt.batch_size, shuffle=True)
+trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=opt.batch_size, shuffle=True)
+testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=opt.batch_size, shuffle=True)
+validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.batch_size, shuffle=True)
 
 
 
@@ -151,4 +155,4 @@ time_stamps = [current_time]
 print("Starting Loop...")
 for epoch in tqdm(range(epochs_done, opt.n_epochs+1)):
 	pass 
-	# TODO next: need to use/make a data loader 
+	# TODO next: need to use a data loader 
