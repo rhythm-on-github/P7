@@ -2,7 +2,7 @@ import torch
 from torch.autograd import Variable
 
 
-def train_discriminator(self, opt, Tensor, data, genData, device, discriminator, generator, optim_disc, loss_func): #add more arguments as needed and remove self when done 
+def train_discriminator(self, opt, Tensor, data, genData, device, discriminator, generator, optim_disc, loss_func):
 	optim_disc.zero_grad()
 
 	# Configure input
