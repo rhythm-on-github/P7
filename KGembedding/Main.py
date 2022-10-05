@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--n_cpu",      type=int,   default=1,      help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 #parser.add_argument("--ngf",        type=int,   default=64,     help="Size of feature maps in generator")
 #parser.add_argument("--ndf",        type=int,   default=64,     help="Size of feature maps in discriminator")
@@ -183,8 +183,8 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 
 		# print to terminal
-		if(i % opt.update_interval == 0):
-			pass#print_update()
+		#if(i % opt.update_interval == 0):
+			#print_update()
 			#print(self.optimizer_D.param_groups[0]['betas'])
 
 		fake_data = []
@@ -203,7 +203,7 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 # --- Generating synthetic data ---
 syntheticTriples = []
 
-for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="generating"):
+for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
 	tripleEnc = generator(z)
 	triple = decode(tripleEnc, entities, entitiesN, relations, relationsN)
