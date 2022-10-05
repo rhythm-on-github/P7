@@ -35,7 +35,7 @@ def encode(triple:Triple, entities, entN, relations, relN):
 
 
 # takes a one-hot encoded triple and converts it to (h,r,t)
-# WARNING: probably pretty damn slow (O(n) but slower than encoding due to float comparisons), use as sparsely as possible 
+# WARNING: VERY slow (O(n) but slower than encoding due to float comparisons), use as sparsely as possible 
 def decode(triple:list, entities, entN, relations, relN):
 	# Generally, relies on the encoding being ordered (hEnc, rEnc, tEnc)
 	# Find the highest-value ID for the head, relation, and tail, individually but in the same way
@@ -44,8 +44,8 @@ def decode(triple:list, entities, entN, relations, relN):
 	for (ID, Val, N) in [(hID, hVal, entN), (rID, rVal, relN), (tID, tVal, entN)]:
 		# range is for within that relation's one-hot encoding
 		for i in range(ID+1, ID+N):
-			Val = triple[i]
-			if Val > Val:
+			iVal = triple[i]
+			if iVal > Val:
 				ID = i
 				Val = iVal
 	# Find the name of the encodings and relation based on their indices in the dictionary

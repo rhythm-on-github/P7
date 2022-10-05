@@ -27,7 +27,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=10,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=1,      help="number of cpu threads to use during batch generation")
@@ -41,10 +41,11 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
 # Output options 
-parser.add_argument("--sample_interval", type=int,  default=200,    help="iters between image samples")
-parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
-parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
-parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
+#parser.add_argument("--sample_interval", type=int,  default=200,    help="iters between image samples")
+#parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
+#parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
+#parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
+parser.add_argument("--out_n_triples",	type=int,	default=1000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -194,3 +195,16 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 		desc += " / " + "{:.2f}".format(discriminator_losses[-1])
 		desc += " / " + "{:.2f}".format(generator_losses[-1])
 		print(desc, end='\r')
+
+
+
+
+
+# --- Generating synthetic data ---
+syntheticTriples = []
+
+for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="generating"):
+	z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
+	tripleEnc = generator(z)
+	triple = decode(tripleEnc, entities, entitiesN, relations, relationsN)
+	syntheticTriples.append(triple)
