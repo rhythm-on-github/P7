@@ -164,6 +164,7 @@ timeStamps = [currentTime]
 # For tqdm bars 
 iters_per_epoch = len(trainDataloader)
 columns = 60
+desc = "Starting"
 
 # run training loop 
 print("Starting Loop...")
@@ -187,3 +188,10 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs+1), position=0, ncols=columns):
 			#print(self.optimizer_D.param_groups[0]['betas'])
 
 		fake_data = []
+
+		desc = " - losses r/f/D/G:  "
+		desc += "{:.2f}".format(real_losses[-1])
+		desc += " / " + "{:.2f}".format(fake_losses[-1])
+		desc += " / " + "{:.2f}".format(discriminator_losses[-1])
+		desc += " / " + "{:.2f}".format(generator_losses[-1])
+		print(desc, end='\r')
