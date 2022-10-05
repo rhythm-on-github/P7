@@ -162,16 +162,15 @@ currentTime = now.strftime("%H:%M:%S")
 timeStamps = [currentTime]
 
 # For tqdm bars 
-iters_per_epoch = len(trainDataloader)
+iters_per_epoch = len(testDataloader)
 columns = 60
-desc = "Starting"
 
 # run training loop 
 print("Starting Loop...")
-for epoch in tqdm(range(epochsDone, opt.n_epochs+1), position=0, ncols=columns):
+for epoch in tqdm(range(epochsDone, opt.n_epochs-1), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
-	for i, batch in tqdm(enumerate(trainDataloader), position=0, total=iters_per_epoch, ncols=columns):
+	for i, batch in tqdm(enumerate(testDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
 		#run a batch
 
 		# train discriminator
