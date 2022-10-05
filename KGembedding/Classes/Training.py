@@ -3,7 +3,7 @@ import numpy as np
 from torch.autograd import Variable
 
 
-def train_discriminator(opt, Tensor, data, genData, device, discriminator, generator, optim_disc, loss_func):
+def train_discriminator(opt, Tensor, data, genData, device, discriminator, generator, optim_disc, loss_func, disc_losses):
 	optim_disc.zero_grad()
 
 	# Configure input
@@ -36,12 +36,34 @@ def train_discriminator(opt, Tensor, data, genData, device, discriminator, gener
 			for p in discriminator.parameters():
 				p.data.clamp_(-opt.clip_value, opt.clip_value)
 					
+	#save misc data
 	genData.append(fake_data)
-	#self.real_losses.append(real_loss.item())
-	#self.fake_losses.append(fake_loss.item())
-	#self.discriminator_losses.append(loss_D.item())
+	(real_losses, fake_losses, discriminator_losses) = disc_losses
+	real_losses.append(real_loss.item())
+	fake_losses.append(fake_loss.item())
+	discriminator_losses.append(loss_D.item())
 
-	#return things as needed
-	#Potential things to return:
-		#real_batch_size
-		#fake_data
+	#return things as needed elsewhere
+	return real_batch_size
+
+
+
+
+def train_generator(genData, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses):
+	optim_gen.zero_grad()
+
+	# fake labels are real for generator cost
+	labels = torch.full((real_batch_size,), 1, dtype=torch.float, device=device)
+
+	# run generator
+	fake_data = genData[-1]
+	output = discriminator(fake_data).view(-1)
+	loss_G = loss_func(output, labels)
+
+	# optimize
+	learningChoice = 'n' #do not disalbe learning
+	if(learningChoice != 'y'):
+		loss_G.backward()
+		optim_gen.step()
+
+	generator_losses.append(loss_G.item())

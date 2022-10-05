@@ -150,7 +150,11 @@ optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.
 epochsDone = 0
 
 # misc data 
-genData = []
+fake_data = [] #latest generated data
+real_losses = []
+fake_losses = []
+discriminator_losses = []
+generator_losses = []
 
 # For checking time (0 epochs timestamp)
 now = datetime.now()
@@ -165,13 +169,16 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs+1)):
 		#run a batch
 
 		# train discriminator
-		train_discriminator(opt, Tensor, batch, genData, device, discriminator, generator, optim_disc, loss_func)
+		disc_losses = (real_losses, fake_losses, discriminator_losses)
+		real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
 
 		# only train generator every n_critic iterations
 		if(i % opt.n_critic == 0):
-			pass#train_generator()
+			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 
 		# print to terminal
 		if(i % opt.update_interval == 0):
 			pass#print_update()
 			#print(self.optimizer_D.param_groups[0]['betas'])
+
+		fake_data = []
