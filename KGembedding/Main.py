@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs",   type=int,   default=10,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu",      type=int,   default=1,      help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 #parser.add_argument("--ngf",        type=int,   default=64,     help="Size of feature maps in generator")
 #parser.add_argument("--ndf",        type=int,   default=64,     help="Size of feature maps in discriminator")
@@ -142,7 +142,7 @@ if cuda:
 	discriminator.to(device)
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-loss_function = torch.nn.BCELoss()
+loss_func = torch.nn.BCELoss()
 optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.beta1, 0.999))
 optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999))
 
@@ -165,7 +165,7 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs+1)):
 		#run a batch
 
 		# train discriminator
-		#train_discriminator(batch)
+		train_discriminator(opt, Tensor, batch, genData, device, discriminator, generator, optim_disc, loss_func)
 
 		# only train generator every n_critic iterations
 		if(i % opt.n_critic == 0):

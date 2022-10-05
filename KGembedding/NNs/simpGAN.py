@@ -8,7 +8,8 @@ class Generator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(zSize, 512),
             nn.ReLU(),
-            nn.Linear(512, entitiesN + relationsN + entitiesN)
+            nn.Linear(512, entitiesN + relationsN + entitiesN),
+            nn.Tanh()
         )
 
     def forward(self, z):
@@ -26,7 +27,8 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(entitiesN + relationsN + entitiesN, 512),
             nn.ReLU(),
-            nn.Linear(512, 1)
+            nn.Linear(512, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, z):
