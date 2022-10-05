@@ -167,7 +167,7 @@ columns = 60
 
 # run training loop 
 print("Starting Loop...")
-for epoch in tqdm(range(epochsDone, opt.n_epochs-1), position=0, leave=False, ncols=columns):
+for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
 	for i, batch in tqdm(enumerate(testDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
