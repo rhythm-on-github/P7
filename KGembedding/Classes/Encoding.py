@@ -38,8 +38,6 @@ def encode(triple:Triple, entities, entN, relations, relN):
 
 # takes a one-hot encoded triple and converts it to (h,r,t)
 def decode(triple:list, entitiesRev, entN, relationsRev, relN):
-	start = datetime.now()
-
 	# Generally, relies on the encoding being ordered (hEnc, rEnc, tEnc)
 
 	#split vector in its three parts
@@ -50,17 +48,10 @@ def decode(triple:list, entitiesRev, entN, relationsRev, relN):
 	rID = torch.argmax(rEnc, dim=0).item()
 	tID = torch.argmax(tEnc, dim=0).item()
 
-	mid = datetime.now()
-
 	# Find the name of the entities and relation based on their indices in the dictionary
 	h = entitiesRev[hID]
 	r = relationsRev[rID]
 	t = entitiesRev[tID]
-
-	end = datetime.now()
-	loopTime = (mid - start).total_seconds()
-	keyTime = (end - mid).total_seconds()
-	print(" - times: " + "{:.2f}".format(loopTime) + "s loop / " + "{:.2f}".format(keyTime) + "s key", end='\r')
 
 	dec = Triple(h, r, t)
 	return dec

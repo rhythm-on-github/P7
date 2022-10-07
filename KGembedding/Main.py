@@ -215,8 +215,20 @@ syntheticTriples = []
 
 for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
+
+	start = datetime.now()
+
 	tripleEnc = generator(z)
+
+	mid = datetime.now()
+
 	triple = decode(tripleEnc, entitiesRev, entitiesN, relationsRev, relationsN)
+
+	end = datetime.now()
+	time1 = (mid - start).total_seconds()
+	time2 = (end - mid).total_seconds()
+	print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
+
 	syntheticTriples.append(triple)
 
 
