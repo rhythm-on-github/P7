@@ -27,7 +27,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -45,7 +45,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",	type=int,	default=20000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -163,7 +163,7 @@ currentTime = now.strftime("%H:%M:%S")
 timeStamps = [currentTime]
 
 # For tqdm bars 
-iters_per_epoch = len(testDataloader)
+iters_per_epoch = len(trainDataloader)
 columns = 60
 
 # run training loop 
@@ -171,7 +171,7 @@ print("Starting Loop...")
 for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
-	for i, batch in tqdm(enumerate(testDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
+	for i, batch in tqdm(enumerate(trainDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
 		#run a batch
 
 		# train discriminator
