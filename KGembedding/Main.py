@@ -94,7 +94,7 @@ relationID = 0
 # Each part of the dataset is loaded the same way
 for (file, data) in [(trainFile, trainData), (testFile, testData), (validFile, validData)]:
 	# Load the specific file's contents, line by line
-	for line in file:
+	for line in tqdm(file, desc="load"):
 		#load tab-separated triple
 		split = line.split('\t')
 		h = split[0]
@@ -236,7 +236,7 @@ edges = syntheticTriples
 # save
 nodesFile.write("Id,Label,timeset,modularity_class\n")
 edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
-for i in range(len(nodes)):
+for i in tqdm(range(len(nodes)), desc="save"):
 	nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
 
 nextEdgeID = 0;
@@ -244,7 +244,7 @@ nextEdgeID = 0;
 for i in range(len(entitiesRev)):
 	(value, key) = entitiesRev.popitem()
 	entities[key] = value
-for triple in edges:
+for triple in tqdm(edges, desc="save"):
 	hID, tID = entities[triple.h], entities[triple.t]
 	edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + triple.r + ",,1\n")
 	nextEdgeID += 1
