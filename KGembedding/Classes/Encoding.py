@@ -41,7 +41,7 @@ def decode(triple:list, entitiesRev, entN, relationsRev, relN):
 	# Generally, relies on the encoding being ordered (hEnc, rEnc, tEnc)
 
 	#split vector in its three parts
-	(hEnc, rEnc, tEnc) = torch.tensor_split(triple.cpu(), (entN, entN+relN), dim=0)
+	(hEnc, rEnc, tEnc) = torch.tensor_split(triple, (entN, entN+relN), dim=0)
 
 	#find index with highest value for each
 	hID = torch.argmax(hEnc, dim=0).item()
