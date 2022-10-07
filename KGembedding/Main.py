@@ -29,7 +29,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -53,13 +53,16 @@ print(opt)
 
 
 # Dataset directory
-workDir  = pathlib.Path().resolve()
-dataDir  = os.path.join(workDir.parent.resolve(), 'datasets')
-FB15Kdir = os.path.join(dataDir, 'FB15K-237')
+def path_join(p1, p2):
+	return os.path.join(p1, p2)
 
-trainDir = os.path.join(FB15Kdir, 'test.txt') #temporarily use smaller dataset
-testDir  = os.path.join(FB15Kdir, 'test.txt')
-validDir = os.path.join(FB15Kdir, 'valid.txt')
+workDir  = pathlib.Path().resolve()
+dataDir  = path_join(workDir.parent.resolve(), 'datasets')
+FB15Kdir = path_join(dataDir, 'FB15K-237')
+
+trainDir = path_join(FB15Kdir, 'test.txt') #temporarily use smaller dataset
+testDir  = path_join(FB15Kdir, 'test.txt')
+validDir = path_join(FB15Kdir, 'valid.txt')
 
 
 # Seed
@@ -243,9 +246,9 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 
 # --- Data formatting & saving ---
 # make/overwrite generated files 
-genDir = os.path.join(dataDir, "gen")
-nodesDir = os.path.join(genDir, "nodes.csv")
-edgesDir = os.path.join(genDir, "edges.csv")
+genDir = path_join(dataDir, "gen")
+nodesDir = path_join(genDir, "nodes.csv")
+edgesDir = path_join(genDir, "edges.csv")
 nodesFile = open(nodesDir, "w")
 edgesFile = open(edgesDir, "w")
 
