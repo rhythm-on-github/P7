@@ -201,7 +201,7 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 
 trainEnd = datetime.now()
 trainTime = (trainEnd - trainStart).total_seconds()
-print("\nTraining time: " + "{:.0f}".format(trainTime) + " seconds")
+print("\nTraining time: " + "{:.0f}".format(trainTime) + " seconds\n")
 
 
 
