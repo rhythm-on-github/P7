@@ -58,11 +58,11 @@ def path_join(p1, p2):
 
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
-FB15Kdir = path_join(dataDir, 'FB15K-237')
+inDataDir = path_join(dataDir, 'FB15K-237')
 
-trainDir = path_join(FB15Kdir, 'test.txt') #temporarily use smaller dataset
-testDir  = path_join(FB15Kdir, 'test.txt')
-validDir = path_join(FB15Kdir, 'valid.txt')
+trainName = 'test.txt' #temporarily use smaller dataset
+testName  = 'test.txt'
+validName = 'valid.txt'
 
 
 # Seed
@@ -80,9 +80,10 @@ if cuda: device = 'cuda:0'
 
 
 # --- Dataset loading & formatting ---
-trainFile = open(trainDir, 'r')
-testFile  = open(testDir, 'r')
-validFile = open(validDir, 'r')
+os.chdir(inDataDir)
+trainFile = open(trainName, 'r')
+testFile  = open(testName, 'r')
+validFile = open(validName, 'r')
 
 trainData = []
 testData  = []
@@ -247,10 +248,9 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 # --- Data formatting & saving ---
 # make/overwrite generated files 
 genDir = path_join(dataDir, "gen")
-nodesDir = path_join(genDir, "nodes.csv")
-edgesDir = path_join(genDir, "edges.csv")
-nodesFile = open(nodesDir, "w")
-edgesFile = open(edgesDir, "w")
+os.chdir(genDir)
+nodesFile = open("nodes.csv", "w")
+edgesFile = open("edges.csv", "w")
 
 # format data as nodes and edges
 nodes = entitiesRev
