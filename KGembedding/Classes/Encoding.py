@@ -38,7 +38,7 @@ def encode(triple:Triple, entities, entN, relations, relN):
 
 # takes a one-hot encoded triple and converts it to (h,r,t)
 # WARNING: VERY slow (O(n) but slower than encoding due to float comparisons), use as sparsely as possible 
-def decode(triple:list, entities, entN, relations, relN):
+def decode(triple:list, entitiesRev, entN, relationsRev, relN):
 	start = datetime.now()
 
 	# Generally, relies on the encoding being ordered (hEnc, rEnc, tEnc)
@@ -47,16 +47,16 @@ def decode(triple:list, entities, entN, relations, relN):
 	(hEnc, rEnc, tEnc) = torch.tensor_split(triple.cpu(), (entN, entN+relN), dim=0)
 
 	#find index with highest value for each
-	hID = torch.argmax(hEnc, dim=0)
-	rID = torch.argmax(rEnc, dim=0)
-	tID = torch.argmax(tEnc, dim=0)
+	hID = torch.argmax(hEnc, dim=0).item()
+	rID = torch.argmax(rEnc, dim=0).item()
+	tID = torch.argmax(tEnc, dim=0).item()
 
 	mid = datetime.now()
 
-	# Find the name of the encodings and relation based on their indices in the dictionary
-	h = {key for key in entities if entities[key] == hID}
-	r = {key for key in relations if relations[key] == rID}
-	t = {key for key in entities if entities[key] == tID}
+	# Find the name of the entities and relation based on their indices in the dictionary
+	h = entitiesRev[hID]
+	r = relationsRev[rID]
+	t = entitiesRev[tID]
 
 	end = datetime.now()
 	loopTime = (mid - start).total_seconds()

@@ -45,7 +45,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",	type=int,	default=1000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -201,10 +201,20 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 
 
 # --- Generating synthetic data ---
+#flip key/value for dictionaries for fast decoding
+entitiesRev = dict()
+relationsRev = dict()
+for i in range(len(entities)):
+	(key, value) = entities.popitem()
+	entitiesRev[value] = key
+for i in range(len(relations)):
+	(key, value) = relations.popitem()
+	relationsRev[value] = key
+
 syntheticTriples = []
 
 for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
 	tripleEnc = generator(z)
-	triple = decode(tripleEnc, entities, entitiesN, relations, relationsN)
+	triple = decode(tripleEnc, entitiesRev, entitiesN, relationsRev, relationsN)
 	syntheticTriples.append(triple)
