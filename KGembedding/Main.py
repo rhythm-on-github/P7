@@ -21,6 +21,8 @@ from Classes.Encoding import *
 from Classes.Training import *
 
 
+
+
 # --- Settings ---
 # NN choice 
 from NNs.simpGAN import *
@@ -45,7 +47,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",	type=int,	default=20000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",	type=int,	default=5000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -55,7 +57,7 @@ workDir  = pathlib.Path().resolve()
 dataDir  = os.path.join(workDir.parent.resolve(), 'datasets')
 FB15Kdir = os.path.join(dataDir, 'FB15K-237')
 
-trainDir = os.path.join(FB15Kdir, 'train.txt')
+trainDir = os.path.join(FB15Kdir, 'test.txt') #temporarily use smaller dataset
 testDir  = os.path.join(FB15Kdir, 'test.txt')
 validDir = os.path.join(FB15Kdir, 'valid.txt')
 
@@ -135,6 +137,7 @@ validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.b
 
 
 # --- Training ---
+trainStart = datetime.now()
 # setup
 generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
 discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
@@ -196,6 +199,10 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 		desc += " / " + "{:.2f}".format(generator_losses[-1])
 		print(desc, end='\r')
 
+trainEnd = datetime.now()
+trainTime = (trainEnd - trainStart).total_seconds()
+print("\nTraining time: " + "{:.0f}".format(trainTime) + " seconds")
+
 
 
 
@@ -230,6 +237,7 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
 
 	syntheticTriples.append(triple)
+
 
 
 

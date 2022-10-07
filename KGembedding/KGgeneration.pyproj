@@ -33,6 +33,9 @@
     <Compile Include="Classes\Encoding.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Classes\Testing.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Classes\Training.py">
       <SubType>Code</SubType>
     </Compile>
