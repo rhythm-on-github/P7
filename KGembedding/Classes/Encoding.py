@@ -37,7 +37,6 @@ def encode(triple:Triple, entities, entN, relations, relN):
 
 
 # takes a one-hot encoded triple and converts it to (h,r,t)
-# WARNING: VERY slow (O(n) but slower than encoding due to float comparisons), use as sparsely as possible 
 def decode(triple:list, entitiesRev, entN, relationsRev, relN):
 	start = datetime.now()
 

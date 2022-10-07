@@ -99,7 +99,7 @@ for (file, data) in [(trainFile, trainData), (testFile, testData), (validFile, v
 		split = line.split('\t')
 		h = split[0]
 		r = split[1]
-		t = split[2]
+		t = split[2][:-2] #remove \n
 		triple = Triple(h, r, t)
 		data.append(triple)
 		#keep track of unique entities and relations + their indices
@@ -201,7 +201,7 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 
 
 # --- Generating synthetic data ---
-#flip key/value for dictionaries for fast decoding
+#flip key/value for dictionaries for fast decoding (clears prior dictionaries to save memory)
 entitiesRev = dict()
 relationsRev = dict()
 for i in range(len(entities)):
@@ -218,3 +218,39 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	tripleEnc = generator(z)
 	triple = decode(tripleEnc, entitiesRev, entitiesN, relationsRev, relationsN)
 	syntheticTriples.append(triple)
+
+
+
+# --- Data formatting & saving ---
+# make/overwrite generated files 
+genDir = os.path.join(dataDir, "gen")
+nodesDir = os.path.join(genDir, "nodes.csv")
+edgesDir = os.path.join(genDir, "edges.csv")
+nodesFile = open(nodesDir, "w")
+edgesFile = open(edgesDir, "w")
+
+# format data as nodes and edges
+nodes = entitiesRev
+edges = syntheticTriples
+
+# save
+nodesFile.write("Id,Label,timeset,modularity_class\n")
+edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
+for i in range(len(nodes)):
+	nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
+
+nextEdgeID = 0;
+#flip entity dictionary again for fast formatting
+for i in range(len(entitiesRev)):
+	(value, key) = entitiesRev.popitem()
+	entities[key] = value
+for triple in edges:
+	hID, tID = entities[triple.h], entities[triple.t]
+	edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + triple.r + ",,1\n")
+	nextEdgeID += 1
+
+
+nodesFile.close()
+edgesFile.close()
+
+print("Done!")
