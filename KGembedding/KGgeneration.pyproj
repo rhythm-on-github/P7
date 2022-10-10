@@ -17,6 +17,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterPath>C:\Program Files\Python310\python.exe</InterpreterPath>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <TestFramework>Pytest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

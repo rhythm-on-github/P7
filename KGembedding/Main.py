@@ -29,7 +29,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -174,7 +174,7 @@ iters_per_epoch = len(trainDataloader)
 columns = 60
 
 # run training loop 
-print("Starting Loop...")
+print("Starting training Loop...")
 for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
@@ -205,7 +205,9 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 
 trainEnd = datetime.now()
 trainTime = (trainEnd - trainStart).total_seconds()
-print("\nTraining time: " + "{:.0f}".format(trainTime) + " seconds\n")
+print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
+tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
+print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
 
 
 
@@ -213,6 +215,7 @@ print("\nTraining time: " + "{:.0f}".format(trainTime) + " seconds\n")
 
 # --- Generating synthetic data ---
 #flip key/value for dictionaries for fast decoding (clears prior dictionaries to save memory)
+genStart = datetime.now()
 entitiesRev = dict()
 relationsRev = dict()
 for i in range(len(entities)):
@@ -241,6 +244,12 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
 
 	syntheticTriples.append(triple)
+	
+genEnd = datetime.now()
+genTime = (genEnd - genStart).total_seconds()
+print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
+tpsGen = (len(syntheticTriples)*opt.n_epochs)/genTime;
+print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
 
 
 

@@ -61,7 +61,7 @@ def train_generator(genData, device, discriminator, optim_gen, loss_func, real_b
 	loss_G = loss_func(output, labels)
 
 	# optimize
-	learningChoice = 'n' #do not disalbe learning
+	learningChoice = 'n' #do not disable learning
 	if(learningChoice != 'y'):
 		loss_G.backward()
 		optim_gen.step()
