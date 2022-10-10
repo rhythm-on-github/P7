@@ -19,6 +19,7 @@ from tqdm import tqdm
 from Classes.Triple import *
 from Classes.Encoding import *
 from Classes.Training import *
+from Classes.Testing import *
 
 
 
@@ -29,7 +30,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -248,7 +249,7 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 genEnd = datetime.now()
 genTime = (genEnd - genStart).total_seconds()
 print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
-tpsGen = (len(syntheticTriples)*opt.n_epochs)/genTime;
+tpsGen = (len(syntheticTriples))/genTime;
 print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
 
 
@@ -284,5 +285,14 @@ for triple in tqdm(edges, desc="save"):
 
 nodesFile.close()
 edgesFile.close()
+
+
+
+
+# --- Testing ---
+print("\nTesting:")
+SDSsum = SDS(validData, syntheticTriples)
+print("SDS result (lower = better): " + "{:.2f}".format(SDSsum))
+
 
 print("Done!")
