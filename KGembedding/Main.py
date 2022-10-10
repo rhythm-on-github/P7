@@ -58,7 +58,7 @@ def path_join(p1, p2):
 
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
-inDataDir = path_join(dataDir, 'FB15K-237')
+inDataDir = path_join(dataDir, 'FB15K237')
 
 trainName = 'test.txt' #temporarily use smaller dataset
 testName  = 'test.txt'
