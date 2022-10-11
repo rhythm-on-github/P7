@@ -3,15 +3,40 @@ from tqdm import tqdm
 
 from .Triple import *
 
-# Idea: Use statistical analysis, e.g. P((x,isA,y) | (x,isA,z))
-#Types of things to analyze:
-	#1: P((x,y,a) | (x,y,b))
-	#2: P((x,a,_) | (x,b,_))
-	#3: P((_,a,z) | (_,b,z))
-	#4: P((a,y,z) | (b,y,z))
-	#5: P((x,a,_) | (x,b,z))
-#(for each node / some subset of nodes (x,y,z), where a and b are placeholders for any existing node/edge)
-# Hypothesis: number 2-3 are most interesting and most feasibly implementable 
+"""
+ Idea: Use statistical analysis, e.g. P((x,isA,y) | (x,isA,z))
+Types of things to analyze:
+	1: P((x,y,a) | (x,y,b))
+	2: P((x,a,_) | (x,b,_))
+	3: P((_,a,z) | (_,b,z))
+	4: P((a,y,z) | (b,y,z))
+	5: P((x,a,_) | (x,b,z))
+(for each node / some subset of nodes (x,y,z), where a and b are placeholders for any existing node/edge)
+Hypothesis: number 2-3 are most interesting and most feasibly implementable 
+
+---------------------------
+SDS v0.1: only test P((x,a,_) | (x,b,_))
+(lower = better)
+1 epoch avgs:
+0.33
+0.35
+0.31
+
+0 epochs avgs:
+0.1
+0.13
+0.08
+
+Judgement: Since the graph for 1 epoch looks more inline with the dataset,
+this version doesn't judge well.
+New hypothesis: relations such as P((x,a,_) | (x,b,_)) can only be accurately
+judged assuming the data is already of higher quality than we have. Therefore,
+a simpler analysis should be employed before this.
+
+-------------------------
+SDS v0.2: test P((_,r,_)) and P((x,a,_) | (x,b,_))
+(lower = better, but the former of the two is prioritised)
+"""
 
 def SDS(A: [Triple], B: [Triple]):
 	""" Statistical Disagreement Score
@@ -49,8 +74,9 @@ def SDS(A: [Triple], B: [Triple]):
 		if y not in yC:
 			yC.append(y)
 
-	#calculate SDS
+	#calculate SDS (ca. O(n^2))
 	sum = 0;
+	n = 0;
 	for a in tqdm(yC, desc="sum"):
 		for b in yC:
 			#count up number of nodes in A with name x that have (both a and b) and (b)
@@ -71,5 +97,6 @@ def SDS(A: [Triple], B: [Triple]):
 						Bxab += 1
 			#calculate difference and add to sum
 			sum += abs((Axab/Axb)-(Bxab/Bxb))
+			n += 1;
 
-	return sum
+	return (n, sum)

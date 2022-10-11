@@ -30,7 +30,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -291,8 +291,11 @@ edgesFile.close()
 
 # --- Testing ---
 print("\nTesting:")
-SDSsum = SDS(validData, syntheticTriples)
-print("SDS result (lower = better): " + "{:.2f}".format(SDSsum))
+#SDSsum = SDS(validData, syntheticTriples)
+(n, sum) = SDS(validData, syntheticTriples)
+print("\nn size: " + str(n))
+print("avg.: " + "{:.2f}".format(sum/n))
+print("SDS result (lower = better): " + "{:.2f}".format(sum))
 
 
 print("Done!")
