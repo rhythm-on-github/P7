@@ -34,19 +34,10 @@ def SDS(A: [Triple], B: [Triple]):
 
 	#calculate triples (x,y,_) present in both A and B
 	C = []
-	for tA in tqdm(A, desc="C"):
-		for tB in B:
-			if tA.h == tB.h and tA.r == tB.r:
-				t = (tA.h,tA.r,"")
-				if t not in C:
-					C.append(t)
-	#optimised ver.
-	print("")
-	Coptimised = []
 	for h in tqdm(Ax.keys(), desc="C"):
 		for r in Ax[h]:
 			if h in Bx.keys():
-				if r in Bx[h]:
+				if r in Bx[h] and (h, r, "") not in C:
 					C.append((h, r, ""))
 
 	#calculate unique x and y values in C
