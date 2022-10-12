@@ -48,7 +48,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",	type=int,	default=5000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -291,11 +291,13 @@ edgesFile.close()
 
 # --- Testing ---
 print("\nTesting:")
-#SDSsum = SDS(validData, syntheticTriples)
-(n, sum) = SDS(validData, syntheticTriples)
-print("\nn size: " + str(n))
-print("avg.: " + "{:.2f}".format(sum/n))
-print("SDS result (lower = better): " + "{:.2f}".format(sum))
+results = SDS(validData, syntheticTriples)
+for result in results:
+	(name, n, sum) = result
+	print(name + " result:")
+	print("n size: " + str(n))
+	print("avg.: " + "{:.2f}".format(sum/n))
+	print("SDS result (lower = better): " + "{:.2f}".format(sum) + "\n")
 
 
 print("Done!")

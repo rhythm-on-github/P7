@@ -12,7 +12,9 @@ Types of things to analyze:
 	4: P((a,y,z) | (b,y,z))
 	5: P((x,a,_) | (x,b,z))
 (for each node / some subset of nodes (x,y,z), where a and b are placeholders for any existing node/edge)
-Hypothesis: number 2-3 are most interesting and most feasibly implementable 
+Hypothesis 1: number 2-3 are most interesting and most feasibly implementable 
+
+For now, testing is done with FB15K237, simpGAN, 1/0 epochs, 5000 output triples
 
 ---------------------------
 SDS v0.1: only test P((x,a,_) | (x,b,_))
@@ -29,23 +31,90 @@ SDS v0.1: only test P((x,a,_) | (x,b,_))
 
 Judgement: Since the graph for 1 epoch looks more inline with the dataset,
 this version doesn't judge well.
-New hypothesis: relations such as P((x,a,_) | (x,b,_)) can only be accurately
+Hypothesis 2: relations such as P((x,a,_) | (x,b,_)) can only be accurately
 judged assuming the data is already of higher quality than we have. Therefore,
 a simpler analysis should be employed before this.
 
 -------------------------
 SDS v0.2: test P((_,r,_)) and P((x,a,_) | (x,b,_))
 (lower = better, but the former of the two is prioritised)
+1 epoch avgs:
+(0.33, 0.27)
+(0.32, 0.39)
+(0.29, 0.26)
+(0.33, 0.18)
+(0.35, 0.24)
+
+0 epochs avgs:
+(0.36, 0.15)
+(0.36, 0.09)
+(0.34, 0.14)
+(0.35, 0.14)
+(0.36, 0.15)
+
+This seems to confirm hypothesis 2, although the data does seem somewhat sporadic.
+Therefore, the number of output triples is increased to 10k goinng onwards (from 5k) and this test is repeated.
+1 epoch avgs:
+(0.32, 0.31)
+(0.34, 0.43)
+(0.34, 0.41)
+(0.33, 0.39)
+(0.31, 0.31)
+
+0 epochs avgs:
+(0.42, 0.20)
+(0.41, 0.17)
+(0.40, 0.11)
+(0.45, 0.16)
+(0.43, 0.19)
+
+This more definitively confirms hypothesis 2, as there is a consistent disparity in the expected direction.
 """
 
 def SDS(A: [Triple], B: [Triple]):
 	""" Statistical Disagreement Score
-	Takes two (intended for a real and a generated) KGs
+	Takes two KGs  (intended for a real and a generated)
     Gives back a score of the sum of difference between statistical predictions for A and B
-	Assumes that every node has a unique name (maybe has to, given input is just a lsit of triples)
+	Assumes that every node has a unique name (maybe has to, given input is just a list of triples)
 	"""
 	print("Calculating SDS...")
+	results = []
 
+	# --- calculate P((_,r,_)) ---
+	# count up how many times each relation appears in A and B, and which relations there are
+	Acount = dict()
+	Bcount = dict()
+	relations = set()
+	for (count, data) in [(Acount, A), (Bcount, B)]:
+		for triple in data:
+			#counting
+			r = triple.r
+			if r not in count:
+				count[r] = 1
+			else:
+				count[r] += 1
+			#relations - since it is a set, will not contain copies
+			relations.add(r)
+
+	# calculate the SDS for P((_,r,_))
+	sum = 0
+	n = len(relations)
+	for r in relations:
+		if r in Acount.keys():
+			if r in Bcount.keys():
+				#calculate difference
+				sum += abs(Acount[r]-Bcount[r]) #/n
+			else:
+				sum += Acount[r] #/n
+		else:
+			if r in Bcount.keys():
+				sum += Bcount[r] #/n
+	sum = sum/n #do division last as optimisation, since all the amounts added to sum need to be divided by n
+	results.append(("P((_,r,_))", n, sum))
+
+
+
+	# --- calculate P((x,a,_) | (x,b,_)) ---
 	#make dictionaries of nodes' outgoing edges
 	Ax = dict()
 	Bx = dict()
@@ -74,7 +143,7 @@ def SDS(A: [Triple], B: [Triple]):
 		if y not in yC:
 			yC.append(y)
 
-	#calculate SDS (ca. O(n^2))
+	#calculate the SDS for P((x,a,_) | (x,b,_)) (ca. O(n^2) time in testing)
 	sum = 0;
 	n = 0;
 	for a in tqdm(yC, desc="sum"):
@@ -99,4 +168,5 @@ def SDS(A: [Triple], B: [Triple]):
 			sum += abs((Axab/Axb)-(Bxab/Bxb))
 			n += 1;
 
-	return (n, sum)
+	results.append(("P((x,a,_) | (x,b,_))", n, sum))
+	return results
