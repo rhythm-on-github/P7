@@ -30,7 +30,7 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
@@ -296,11 +296,11 @@ for result in results:
 	(name, n, sum) = result
 	print(name + " result:")
 	print("n size: " + str(n))
+	print("sum: " + "{:.2f}".format(sum))
 	if n != 0:
-		print("avg.: " + "{:.2f}".format(sum/n))
+		print("avg.: " + "{:.2f}".format(sum/n) + " (lower = better)\n")
 	else:
-		print("avg.: NaN")
-	print("SDS result (lower = better): " + "{:.2f}".format(sum) + "\n")
+		print("avg.: NaN" + " (lower = better)\n")
 
 
 print("Done!")
