@@ -110,7 +110,15 @@ Result: (0.36, 0.51) and used 538 nodes
 Judgement: It seems that this may be able to help, but that the results are too sporadic. This neither confirms nor disconfirms Hypothesis 5.
 
 Hypothesis 6: Since the results of the tests for hypothesis 5 are sporadic, it seems the stepping occasionally makes a step much too large.
-	This could be caused by [???]
+	This could be caused by the batch size now being too low after the discriminator has started actually learning from fake data aswell.
+Test: change batch size to 128/256
+128 result: (0.55, NaN) and used 13 nodes, mostly stable graph
+256 result: (0.55, 0) and used 983 nodes, stable graph
+Since this seems to potentially improve it, also testing batch size 512/1024
+512 result: (0.44, 0.44) and used 725 nodes, stable graph
+1024 result: (0.48, 0.29) and used 4553 nodes, mostly stable graph
+Judgement: It seems hat higher batch sizes does help, however, from the loss graphs it seems that the learning is also slower. The local ideal seems to be a batch size of 512.
+
 
 """
 
