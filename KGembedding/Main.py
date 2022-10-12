@@ -14,14 +14,13 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 # local imports
 from Classes.Triple import *
 from Classes.Encoding import *
 from Classes.Training import *
 from Classes.Testing import *
-
+from Classes.Graph import *
 
 
 
@@ -50,7 +49,6 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.02,    help="targe
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--graph_interval", type=int,  default=1,    help="epochs between loss graph saves")
 parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
 parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 opt = parser.parse_args()
@@ -65,6 +63,9 @@ workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, 'FB15K237')
 loss_graphDir = path_join(dataDir, "loss_graph")
+
+# filepath for storing loss graph
+graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
 
 trainName = 'train.txt' #temporarily use smaller dataset
 testName  = 'test.txt'
@@ -193,9 +194,6 @@ timeStamps = [currentTime]
 iters_per_epoch = len(trainDataloader)
 columns = 60
 
-# For keeping count of epochs when saving graph
-epochs = 0
-
 # run training loop 
 if real_epochs > 0:
 	print("Starting training Loop...")
@@ -219,6 +217,8 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		if(D_trains_since_G_train >= opt.n_critic or D_overperforming or i == 0):
 			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 			D_trains_since_G_train = 0
+		else:
+			generator_losses.append(generator_losses[-1])
 
 		# print to terminal
 		#if(i % opt.update_interval == 0):
@@ -234,18 +234,13 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		desc += " / " + "{:.2f}".format(generator_losses[-1])
 		print(desc, end='\r')
 
-	epochs += 1
-	if (epochs % opt.graph_interval == 0):
-		plt.figure(figsize=(10, 5))
-		plt.title("Generator and Discriminator Loss During Training")
-		plt.plot(generator_losses,label="G")
-		plt.plot(discriminator_losses,label="D")
-		plt.xlabel("Iterations")
-		plt.ylabel("Loss")
-		plt.legend()
-		graphDirAndName = path_join(loss_graphDir, str(epochs) + "epochs.png")
-		plt.savefig(graphDirAndName)
-		plt.close()
+		# save graph every iteration
+		saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+
+	# save graph after 1 epoch
+	saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+
+	
 
 trainEnd = datetime.now()
 if real_epochs > 0:
