@@ -199,7 +199,8 @@ epochs = 0
 # run training loop 
 if real_epochs > 0:
 	print("Starting training Loop...")
-
+	
+D_trains_since_G_train = 0;
 for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
@@ -209,13 +210,15 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		# train discriminator
 		disc_losses = (real_losses, fake_losses, discriminator_losses)
 		real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
+		D_trains_since_G_train += 1
 
 		# only train generator every n_critic iterations or if the discriminator is overperforming
 		D_overperforming = False
 		if epoch >= 1 or i >= 1:
 			D_overperforming = fake_losses[-1] < opt.fake_loss_min
-		if(i % opt.n_critic == 0 or D_overperforming):
+		if(D_trains_since_G_train >= opt.n_critic or D_overperforming or i == 0):
 			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
+			D_trains_since_G_train = 0
 
 		# print to terminal
 		#if(i % opt.update_interval == 0):

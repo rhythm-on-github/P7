@@ -119,6 +119,8 @@ Since this seems to potentially improve it, also testing batch size 512/1024
 1024 result: (0.48, 0.29) and used 4553 nodes, mostly stable graph
 Judgement: It seems hat higher batch sizes does help, however, from the loss graphs it seems that the learning is also slower. The local ideal seems to be a batch size of 512.
 
+
+--- start of using hyperparameter tuning ---
 Hypothesis 7: The learning now stops early and more epochs are needed, and outside of this there are now sufficient things in place for hyperparameter optimisation to work well.
 test: increase epochs and use a hyperparameter tuner
 """
