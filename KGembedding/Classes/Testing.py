@@ -95,7 +95,23 @@ Tests:
 Also note that batch size will be default 64 from here on
 Results:
 	1. broke learning, no output
-	2. 
+	2. score of (0.33, 0.14) and used 4194 nodes
+Judgement: It seems that hypothesis 4 was correct, and it now performs far better on the larger dataset than before. However, the losses now diverge, with generator loss going up to 100.
+
+Hypothesis 5: The discriminator is now overperforming, and the generator is not learning enough because the discriminator gradient approaches 0.
+Test: Implement a way to limit the difference between D and G losses by learning G more or less often depending on D performance (initially try to keep loss difference around 10)
+Result: (0.34, 0.36) and used 990 nodes
+For the first 90% or so it seemed to do better (G loss around 70), but then it "exploded" to 100 G loss. it seems the hypothesis is correct, but more testing will be needed for this.
+Test: Limit the difference by learning G more if D's fake loss is < 0.1
+Result: (0.55, NaN) and used 13 nodes
+This time the loss graph looked promising, but the result was poor. This indicates the discriminator may have been limited too much.
+Test: limit to 0.02 instead of 0.1
+Result: (0.36, 0.51) and used 538 nodes
+Judgement: It seems that this may be able to help, but that the results are too sporadic. This neither confirms nor disconfirms Hypothesis 5.
+
+Hypothesis 6: Since the results of the tests for hypothesis 5 are sporadic, it seems the stepping occasionally makes a step much too large.
+	This could be caused by [???]
+
 """
 
 def SDS(A: [Triple], B: [Triple]):

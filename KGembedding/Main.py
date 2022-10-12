@@ -40,9 +40,10 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 #parser.add_argument("--ndf",        type=int,   default=64,     help="Size of feature maps in discriminator")
 #parser.add_argument("--img_size",   type=int,   default=64,     help="size of each image dimension")
 #parser.add_argument("--channels",   type=int,   default=3,      help="number of image channels")
-parser.add_argument("--n_critic",   type=int,   default=2,      help="number of training steps for discriminator per iter")
+parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
+parser.add_argument("--fake_loss_min",  type=float, default=0.02,    help="target minimum fake loss for D")
 
 # Output options 
 #parser.add_argument("--sample_interval", type=int,  default=200,    help="iters between image samples")
@@ -65,7 +66,7 @@ dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, 'FB15K237')
 loss_graphDir = path_join(dataDir, "loss_graph")
 
-trainName = 'test.txt' #temporarily use smaller dataset
+trainName = 'train.txt' #temporarily use smaller dataset
 testName  = 'test.txt'
 validName = 'valid.txt'
 
@@ -209,8 +210,11 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		disc_losses = (real_losses, fake_losses, discriminator_losses)
 		real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
 
-		# only train generator every n_critic iterations
-		if(i % opt.n_critic == 0):
+		# only train generator every n_critic iterations or if the discriminator is overperforming
+		D_overperforming = False
+		if epoch >= 1 or i >= 1:
+			D_overperforming = fake_losses[-1] < opt.fake_loss_min
+		if(i % opt.n_critic == 0 or D_overperforming):
 			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 
 		# print to terminal
