@@ -14,6 +14,7 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 # local imports
 from Classes.Triple import *
@@ -48,6 +49,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
+parser.add_argument("--graph_interval", type=int,  default=1,    help="epochs between loss graph saves")
 parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
@@ -60,6 +62,7 @@ def path_join(p1, p2):
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, 'FB15K237')
+loss_graphDir = path_join(dataDir, "loss_graph")
 
 trainName = 'train.txt' #temporarily use smaller dataset
 testName  = 'test.txt'
@@ -174,6 +177,9 @@ timeStamps = [currentTime]
 iters_per_epoch = len(trainDataloader)
 columns = 60
 
+# For keeping count of epochs when saving graph
+epochs = 0
+
 # run training loop 
 print("Starting training Loop...")
 for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncols=columns):
@@ -203,6 +209,18 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 		desc += " / " + "{:.2f}".format(discriminator_losses[-1])
 		desc += " / " + "{:.2f}".format(generator_losses[-1])
 		print(desc, end='\r')
+
+	epochs += 1
+	if (epochs % opt.graph_interval == 0):
+		plt.figure(figsize=(10, 5))
+		plt.title("Generator and Discriminator Loss During Training")
+		plt.plot(generator_losses,label="G")
+		plt.plot(discriminator_losses,label="D")
+		plt.xlabel("Iterations")
+		plt.ylabel("Loss")
+		plt.legend()
+		plt.savefig(loss_graphDir + "/" + str(epochs) + "epochs.png")
+		plt.close()
 
 trainEnd = datetime.now()
 trainTime = (trainEnd - trainStart).total_seconds()
