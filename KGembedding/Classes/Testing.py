@@ -14,7 +14,7 @@ Types of things to analyze:
 (for each node / some subset of nodes (x,y,z), where a and b are placeholders for any existing node/edge)
 Hypothesis 1: number 2-3 are most interesting and most feasibly implementable 
 
-For now, testing is done with FB15K237, simpGAN, 1/0 epochs, 5000 output triples
+For now, testing is done with FB15K237 (test as train), simpGAN, 1/0 epochs, 5000 output triples
 
 ---------------------------
 SDS v0.1: only test P((x,a,_) | (x,b,_))
@@ -69,6 +69,9 @@ Therefore, the number of output triples is increased to 10k goinng onwards (from
 (0.43, 0.19)
 
 This more definitively confirms hypothesis 2, as there is a consistent disparity in the expected direction.
+Running a test with 5 epochs yielded a score of (0.45, 0.44), which is consistent with Gephi showing clear overfitting.
+Furthermore, a test with 1 poch on FB15K237 actual train data gave (0.55, NaN), consistent with Gephi showing extreme overfitting.
+Judgement: SDS v0.2 is usable, and the current NN/hyperparameters lead to extreme overfitting on larger datasets. 
 """
 
 def SDS(A: [Triple], B: [Triple]):
