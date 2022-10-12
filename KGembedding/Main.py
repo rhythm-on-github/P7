@@ -31,8 +31,8 @@ from NNs.simpGAN import *
 
 # Hyperparameters 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
-parser.add_argument("--batch_size", type=int,   default=128,     help="size of the batches")
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
@@ -40,7 +40,7 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 #parser.add_argument("--ndf",        type=int,   default=64,     help="Size of feature maps in discriminator")
 #parser.add_argument("--img_size",   type=int,   default=64,     help="size of each image dimension")
 #parser.add_argument("--channels",   type=int,   default=3,      help="number of image channels")
-parser.add_argument("--n_critic",   type=int,   default=1,      help="number of training steps for discriminator per iter")
+parser.add_argument("--n_critic",   type=int,   default=2,      help="number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
@@ -65,7 +65,7 @@ dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, 'FB15K237')
 loss_graphDir = path_join(dataDir, "loss_graph")
 
-trainName = 'train.txt' #temporarily use smaller dataset
+trainName = 'test.txt' #temporarily use smaller dataset
 testName  = 'test.txt'
 validName = 'valid.txt'
 
@@ -236,7 +236,8 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		plt.xlabel("Iterations")
 		plt.ylabel("Loss")
 		plt.legend()
-		plt.savefig(loss_graphDir + "/" + str(epochs) + "epochs.png")
+		graphDirAndName = path_join(loss_graphDir, str(epochs) + "epochs.png")
+		plt.savefig(graphDirAndName)
 		plt.close()
 
 trainEnd = datetime.now()

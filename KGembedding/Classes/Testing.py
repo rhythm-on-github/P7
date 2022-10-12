@@ -87,6 +87,15 @@ batch size 4: (0.55, NaN) but 2 instead of 7 nodes used
 
 With the additional results, it seems that the lower nodes used is not a fluke. With this in mind, the ideal batch size (given the other hyperparameters) seems to be 64.
 However, a hyperparameter tuner could also be used, so that will be tested as soon as it can be implemented. 
+Hypothesis 4: the discriminator ends up not learning from the generated examples, with a potential cause being the backwards call in the generator's learning negating the discriminator's backwards call,
+	since the discriminator isn't detached during generator learning, and labels being opposite for generator.
+Tests:
+	1. detach output from discriminator in generator's learning (may disable learning for generator)
+	2. Learn discriminator twice as often as generator
+Also note that batch size will be default 64 from here on
+Results:
+	1. broke learning, no output
+	2. 
 """
 
 def SDS(A: [Triple], B: [Triple]):
