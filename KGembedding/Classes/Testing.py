@@ -73,6 +73,20 @@ This more definitively confirms hypothesis 2, as there is a consistent disparity
 Running a test with 5 epochs yielded a score of (0.45, 0.44), which is consistent with Gephi showing clear overfitting.
 Furthermore, a test with 1 poch on FB15K237 actual train data gave (0.55, NaN), consistent with Gephi showing extreme overfitting.
 Judgement: SDS v0.2 is usable, and the current NN/hyperparameters lead to extreme overfitting on larger datasets. 
+Hypothesis 3: the batch size is too large (128), leading to overfitting
+Test: Change the batch size to 64/32/16
+From here, the training dataset is also changed to FB15K237 actual train data, and it is only tested for 1 epoch.
+Results:
+batch size 64: (0.55, NaN) but 10 instead of 7 nodes used
+batch size 32: (0.54, NaN) but 3 instead of 7 nodes used
+batch size 16: (0.52, NaN) but 2 instead of 7 nodes used
+
+Since the SDS has consistently improved as batch size decreases, we will also attempt lower batch sizes. The number of nodes used has worsened, but that may be a fluke.
+batch size 8: (0.52, NaN) but 3 instead of 7 nodes used
+batch size 4: (0.55, NaN) but 2 instead of 7 nodes used
+
+With the additional results, it seems that the lower nodes used is not a fluke. With this in mind, the ideal batch size (given the other hyperparameters) seems to be 64.
+However, a hyperparameter tuner could also be used, so that will be tested as soon as it can be implemented. 
 """
 
 def SDS(A: [Triple], B: [Triple]):

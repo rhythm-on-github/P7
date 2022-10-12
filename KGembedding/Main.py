@@ -51,6 +51,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--graph_interval", type=int,  default=1,    help="epochs between loss graph saves")
 parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 opt = parser.parse_args()
 print(opt)
 
@@ -93,6 +94,8 @@ trainData = []
 testData  = []
 validData = []
 
+dataToLoad = [(trainFile, trainData), (testFile, testData), (validFile, validData)]
+
 #only used to: 
 # 1. get the number of unique entities and relations, for one-hot encoding 
 # 2. get their individual indices (key: name, value: index)
@@ -101,8 +104,16 @@ entityID = 0
 relations  = dict()
 relationID = 0
 
+#potentially load generated data
+genDir = path_join(dataDir, "gen")
+os.chdir(genDir)
+genData = []
+if opt.test_only:
+	genFile = open("triples.csv", 'r')
+	dataToLoad.append((genFile, genData))
+
 # Each part of the dataset is loaded the same way
-for (file, data) in [(trainFile, trainData), (testFile, testData), (validFile, validData)]:
+for (file, data) in dataToLoad:
 	# Load the specific file's contents, line by line
 	for line in tqdm(file, desc="load"):
 		#load tab-separated triple
@@ -145,6 +156,10 @@ validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.b
 
 
 # --- Training ---
+real_epochs = opt.n_epochs
+if opt.test_only:
+	real_epochs = 0
+
 trainStart = datetime.now()
 # setup
 generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
@@ -181,8 +196,10 @@ columns = 60
 epochs = 0
 
 # run training loop 
-print("Starting training Loop...")
-for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncols=columns):
+if real_epochs > 0:
+	print("Starting training Loop...")
+
+for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols=columns):
 	# run an epoch 
 	print("")
 	for i, batch in tqdm(enumerate(trainDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
@@ -223,16 +240,21 @@ for epoch in tqdm(range(epochsDone, opt.n_epochs), position=0, leave=False, ncol
 		plt.close()
 
 trainEnd = datetime.now()
-trainTime = (trainEnd - trainStart).total_seconds()
-print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
-tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
-print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
+if real_epochs > 0:
+	trainTime = (trainEnd - trainStart).total_seconds()
+	print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
+	tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
+	print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
 
 
 
 
 
 # --- Generating synthetic data ---
+real_out_triples = opt.out_n_triples
+if opt.test_only:
+	real_out_triples = 0
+
 #flip key/value for dictionaries for fast decoding (clears prior dictionaries to save memory)
 genStart = datetime.now()
 entitiesRev = dict()
@@ -246,7 +268,7 @@ for i in range(len(relations)):
 
 syntheticTriples = []
 
-for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
+for i in tqdm(range(real_out_triples), ncols=columns, desc="gen"):
 	z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
 
 	start = datetime.now()
@@ -265,51 +287,62 @@ for i in tqdm(range(opt.out_n_triples), ncols=columns, desc="gen"):
 	syntheticTriples.append(triple)
 	
 genEnd = datetime.now()
-genTime = (genEnd - genStart).total_seconds()
-print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
-tpsGen = (len(syntheticTriples))/genTime;
-print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
+if real_out_triples > 0:
+	genTime = (genEnd - genStart).total_seconds()
+	print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
+	tpsGen = (len(syntheticTriples))/genTime;
+	print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
 
 
 
 
-# --- Data formatting & saving ---
-# make/overwrite generated files 
-genDir = path_join(dataDir, "gen")
-os.chdir(genDir)
-nodesFile = open("nodes.csv", "w")
-edgesFile = open("edges.csv", "w")
+# --- Data formatting & saving  (and maybe synthetic data saving) ---
 
-# format data as nodes and edges
-nodes = entitiesRev
-edges = syntheticTriples
+if not opt.test_only:
+	# make/overwrite generated files 
+	nodesFile = open("nodes.csv", "w")
+	edgesFile = open("edges.csv", "w")
+	triplesFile = open("triples.csv", "w")
 
-# save
-nodesFile.write("Id,Label,timeset,modularity_class\n")
-edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
-for i in tqdm(range(len(nodes)), desc="save"):
-	nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
+	# format & save data 
+	#format data as nodes and edges
+	nodes = entitiesRev
+	edges = syntheticTriples
 
-nextEdgeID = 0;
-#flip entity dictionary again for fast formatting
-for i in range(len(entitiesRev)):
-	(value, key) = entitiesRev.popitem()
-	entities[key] = value
-for triple in tqdm(edges, desc="save"):
-	hID, tID = entities[triple.h], entities[triple.t]
-	edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + triple.r + ",,1\n")
-	nextEdgeID += 1
+	#save
+	nodesFile.write("Id,Label,timeset,modularity_class\n")
+	edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
+	for i in tqdm(range(len(nodes)), desc="save"):
+		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
+
+	nextEdgeID = 0;
+	#flip entity dictionary again for fast formatting
+	for i in range(len(entitiesRev)):
+		(value, key) = entitiesRev.popitem()
+		entities[key] = value
+	for triple in tqdm(edges, desc="save"):
+		(h, r, t) = (triple.h, triple.r, triple.t)
+		hID, tID = entities[h], entities[t]
+		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
+		nextEdgeID += 1
+		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
+
+	nodesFile.close()
+	edgesFile.close()
+	triplesFile.close()
 
 
-nodesFile.close()
-edgesFile.close()
 
 
 
 
 # --- Testing ---
 print("\nTesting:")
-results = SDS(validData, syntheticTriples)
+results = []
+if not opt.test_only:
+	results = SDS(validData, syntheticTriples)
+else:
+	results = SDS(validData, genData)
 for result in results:
 	(name, n, sum) = result
 	print(name + " result:")
