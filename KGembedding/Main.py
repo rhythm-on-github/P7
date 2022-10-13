@@ -62,7 +62,7 @@ def path_join(p1, p2):
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, 'FB15K237')
-loss_graphDir = path_join(dataDir, "loss_graph")
+loss_graphDir = path_join(dataDir, "_loss_graph")
 
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
@@ -107,7 +107,7 @@ relations  = dict()
 relationID = 0
 
 #potentially load generated data
-genDir = path_join(dataDir, "gen")
+genDir = path_join(dataDir, "_gen")
 os.chdir(genDir)
 genData = []
 if opt.test_only:
