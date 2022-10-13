@@ -123,6 +123,13 @@ Since this seems to potentially improve it, also testing batch size 512/1024
 Judgement: It seems hat higher batch sizes does help, however, from the loss graphs it seems that the learning is also slower. The local ideal seems to be a batch size of 512.
 
 
+-------------------------
+SDS v0.3 changelist:
+	Feature: An overall score is now given alongside detailed results (overall = linear average of results)
+	Feature: Also calculate P((h,_,_)) and P((_,_,t))
+	Bugfix: P((_,r,_)) now divides counts by each dataset's own total, making it more accurate (previously divided by n rather than nA and nB)
+
+
 --- start of using hyperparameter tuning ---
 Hypothesis 7: The learning now stops early and more epochs are needed, and outside of this there are now sufficient things in place for hyperparameter optimisation to work well.
 test: increase epochs and use a hyperparameter tuner

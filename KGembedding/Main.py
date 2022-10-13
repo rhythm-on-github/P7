@@ -50,7 +50,7 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
-parser.add_argument("--test_only",		type=bool,	default=True,	help="Skip training/generating/saving and just load generated data for testing?")
+parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 opt = parser.parse_args()
 print(opt)
 
