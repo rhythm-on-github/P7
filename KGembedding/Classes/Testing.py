@@ -137,38 +137,48 @@ def SDS(A: [Triple], B: [Triple]):
 	print("Calculating SDS...")
 	results = []
 
-	# --- calculate P((_,r,_)) ---
-	# count up how many times each relation appears in A and B, and which relations there are
-	Acount = dict()
-	Bcount = dict()
-	relations = set()
-	for (count, data) in [(Acount, A), (Bcount, B)]:
-		for triple in data:
-			#counting
-			r = triple.r
-			if r not in count:
-				count[r] = 1
-			else:
-				count[r] += 1
-			#relations - since it is a set, will not contain copies
-			relations.add(r)
-	nA = len(A)
-	nB = len(B)
+	# --- calculate P((h,_,_)), P((_,r,_)) and P((_,_,t)) ---
+	# functions for taking out the relevant component of a triple
+	def head(t:Triple):
+		return t.h
+	def relation(t:Triple):
+		return t.r
+	def tail(t:Triple):
+		return t.t
 
-	# calculate the SDS for P((_,r,_))
-	sum = 0
-	for r in relations:
-		if r in Acount.keys():
-			if r in Bcount.keys():
-				#calculate difference
-				sum += abs((Acount[r]/nA)-(Bcount[r]/nB))
+	analyses = [(head, "P((h,_,_))"), (relation, "P((_,r,_))"), (tail, "P((_,_,t))")]
+	for (getter, name) in analyses:
+		# count up how many times each component appears in A and B, and which components there are
+		Acount = dict()
+		Bcount = dict()
+		components = set()
+		for (count, data) in [(Acount, A), (Bcount, B)]:
+			for triple in data:
+				#counting
+				c = getter(triple)
+				if c not in count:
+					count[c] = 1
+				else:
+					count[c] += 1
+				#components - since it is a set, will not contain copies
+				components.add(c)
+		nA = len(A)
+		nB = len(B)
+
+		# calculate the SDS for P((h,_,_)), P((_,r,_)) or P((_,_,t))
+		sum = 0
+		for c in components:
+			if c in Acount.keys():
+				if c in Bcount.keys():
+					#calculate difference
+					sum += abs((Acount[c]/nA)-(Bcount[c]/nB))
+				else:
+					sum += Acount[c]/nA
 			else:
-				sum += Acount[r]/nA
-		else:
-			if r in Bcount.keys():
-				sum += Bcount[r]/nB
-	n = len(relations)
-	results.append(("P((_,r,_))", n, sum))
+				if c in Bcount.keys():
+					sum += Bcount[c]/nB
+		n = len(components)
+		results.append((name, n, sum))
 
 
 
