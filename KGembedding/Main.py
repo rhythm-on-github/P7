@@ -39,10 +39,10 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 #parser.add_argument("--ndf",        type=int,   default=64,     help="Size of feature maps in discriminator")
 #parser.add_argument("--img_size",   type=int,   default=64,     help="size of each image dimension")
 #parser.add_argument("--channels",   type=int,   default=3,      help="number of image channels")
-parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
+parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
-parser.add_argument("--fake_loss_min",  type=float, default=0.02,    help="target minimum fake loss for D")
+parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
 
 # Output options 
 #parser.add_argument("--sample_interval", type=int,  default=200,    help="iters between image samples")
@@ -50,7 +50,7 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.02,    help="targe
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
-parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
+parser.add_argument("--test_only",		type=bool,	default=True,	help="Skip training/generating/saving and just load generated data for testing?")
 opt = parser.parse_args()
 print(opt)
 
@@ -228,10 +228,10 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		fake_data = []
 
 		desc = " - losses r/f/D/G:  "
-		desc += "{:.2f}".format(real_losses[-1])
-		desc += " / " + "{:.2f}".format(fake_losses[-1])
-		desc += " / " + "{:.2f}".format(discriminator_losses[-1])
-		desc += " / " + "{:.2f}".format(generator_losses[-1])
+		desc += "{:.3f}".format(real_losses[-1])
+		desc += " / " + "{:.4f}".format(fake_losses[-1])
+		desc += " / " + "{:.3f}".format(discriminator_losses[-1])
+		desc += " / " + "{:.1f}".format(generator_losses[-1])
 		print(desc, end='\r')
 
 		# save graph every iteration
@@ -345,7 +345,8 @@ results = []
 if not opt.test_only:
 	results = SDS(validData, syntheticTriples)
 else:
-	results = SDS(validData, genData)
+	results = SDS(validData, testData)
+
 for result in results:
 	(name, n, sum) = result
 	print(name + " result:")

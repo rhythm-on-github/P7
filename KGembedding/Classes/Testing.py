@@ -11,6 +11,9 @@ Types of things to analyze:
 	3: P((_,a,z) | (_,b,z))
 	4: P((a,y,z) | (b,y,z))
 	5: P((x,a,_) | (x,b,z))
+	6: P((_,r,_))
+	7: P((h,_,_))
+	8: P((_,_,t))
 (for each node / some subset of nodes (x,y,z), where a and b are placeholders for any existing node/edge)
 Hypothesis 1: number 2-3 are most interesting and most feasibly implementable 
 
@@ -149,21 +152,22 @@ def SDS(A: [Triple], B: [Triple]):
 				count[r] += 1
 			#relations - since it is a set, will not contain copies
 			relations.add(r)
+	nA = len(A)
+	nB = len(B)
 
 	# calculate the SDS for P((_,r,_))
 	sum = 0
-	n = len(relations)
 	for r in relations:
 		if r in Acount.keys():
 			if r in Bcount.keys():
 				#calculate difference
-				sum += abs(Acount[r]-Bcount[r]) #/n
+				sum += abs((Acount[r]/nA)-(Bcount[r]/nB))
 			else:
-				sum += Acount[r] #/n
+				sum += Acount[r]/nA
 		else:
 			if r in Bcount.keys():
-				sum += Bcount[r] #/n
-	sum = sum/n #do division last as optimisation, since all the amounts added to sum need to be divided by n
+				sum += Bcount[r]/nB
+	n = len(relations)
 	results.append(("P((_,r,_))", n, sum))
 
 
