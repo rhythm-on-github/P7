@@ -341,21 +341,24 @@ if not opt.test_only:
 
 # --- Testing ---
 print("\nTesting:")
-results = []
+(score, results) = (0, [])
 if not opt.test_only:
-	results = SDS(validData, syntheticTriples)
+	(score, results) = SDS(validData, syntheticTriples)
 else:
-	results = SDS(validData, testData)
+	(score, results) = SDS(validData, genData)
 
+print("\nDetailed SDS results: (lower = better)")
 for result in results:
 	(name, n, sum) = result
 	print(name + " result:")
-	print("n size: " + str(n))
-	print("sum: " + "{:.2f}".format(sum))
+	#print("n size: " + str(n))
+	#print("sum: " + "{:.2f}".format(sum))
 	if n != 0:
-		print("avg.: " + "{:.2f}".format(sum/n) + " (lower = better)\n")
+		print("avg.: " + "{:.2f}".format(sum/n) + "\n")
 	else:
 		print("avg.: NaN" + " (lower = better)\n")
+print("Overall SDS score: (lower = better)")
+print("{:.2f}".format(score))
 
 
 print("Done!")

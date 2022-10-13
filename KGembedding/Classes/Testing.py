@@ -227,4 +227,14 @@ def SDS(A: [Triple], B: [Triple]):
 			n += 1;
 
 	results.append(("P((x,a,_) | (x,b,_))", n, sum))
-	return results
+
+	#get overall SDS score (avg of individual scores)
+	score = 0
+	for (name, n, sum) in results:
+		if n >= 1:
+			score += sum/n
+		else:
+			score += 1 #n=0 gives NaN, and there was no overlap -> counts as 100% disagreement
+	score = score/len(results)
+
+	return (score, results)
