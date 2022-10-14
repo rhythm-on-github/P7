@@ -45,7 +45,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
 
 # Output options 
-#parser.add_argument("--sample_interval", type=int,  default=200,    help="iters between image samples")
+parser.add_argument("--sample_interval", type=int,  default=50,    help="iters between image samples")
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
@@ -234,10 +234,11 @@ for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols
 		desc += " / " + "{:.1f}".format(generator_losses[-1])
 		print(desc, end='\r')
 
-		# save graph every iteration
-		saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+		# save graph every sample_interval iteration
+		if (i % opt.sample_interval == 0):
+			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
-	# save graph after 1 epoch
+	# save graph after each epoch
 	saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 	
