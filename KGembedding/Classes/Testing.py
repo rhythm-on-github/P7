@@ -129,6 +129,9 @@ SDS v0.3 changelist:
 	Feature: Also calculate P((h,_,_)) and P((_,_,t))
 	Bugfix: P((_,r,_)) now divides counts by each dataset's own total, making it more accurate (previously divided by n rather than nA and nB)
 
+SDS v0.3.1 changelist:
+	Bugfix: P((_,r,_)) and the other 2 related now get their sums multiplied by n/2, so their avg. is 1 for disjoint datasets
+
 
 --- start of using hyperparameter tuning ---
 Hypothesis 7: The learning now stops early and more epochs are needed, and outside of this there are now sufficient things in place for hyperparameter optimisation to work well.
@@ -185,7 +188,7 @@ def SDS(A: [Triple], B: [Triple]):
 				if c in Bcount.keys():
 					sum += Bcount[c]/nB
 		n = len(components)
-		results.append((name, n, sum))
+		results.append((name, n, (sum*n/2)))
 
 
 
