@@ -368,7 +368,7 @@ def main(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	)
 	results = tuner.fit()
 
-	best_result = results.get_best_result("loss", "min")
+	best_result = results.get_best_result("score", "min")
 	
 	print("Best trial config: {}".format(best_result.config))
 	print("Best trial final validation loss: {}".format(
