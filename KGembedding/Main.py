@@ -14,6 +14,11 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
+import ray
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -158,97 +163,118 @@ validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.b
 
 
 # --- Training ---
-real_epochs = opt.n_epochs
-if opt.test_only:
-	real_epochs = 0
 
-trainStart = datetime.now()
-# setup
-generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
-discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
-if cuda:
-	generator.to(device)
-	discriminator.to(device)
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+def train(config):
+	real_epochs = opt.n_epochs
+	if opt.test_only:
+		real_epochs = 0
 
-loss_func = torch.nn.BCELoss()
-optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.beta1, 0.999))
-optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999))
+	trainStart = datetime.now()
+	# setup
+	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+	if cuda:
+		generator.to(device)
+		discriminator.to(device)
+	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-# If we had checkpoints it would be here
-epochsDone = 0
+	loss_func = torch.nn.BCELoss()
+	optim_gen =  torch.optim.Adam(generator.parameters(),		lr=opt.lr, betas=(opt.beta1, 0.999))
+	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=opt.lr, betas=(opt.beta1, 0.999)) 
 
-# misc data 
-fake_data = [] #latest generated data
-real_losses = []
-fake_losses = []
-discriminator_losses = []
-generator_losses = []
+	# Checkpoint restoring
+	loaded_checkpoint = session.get_checkpoint()
+	if loaded_checkpoint:
+		with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
+			D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(os.path.join(loaded_checkpoint_dir, "checkpoint.pt"))
+		discriminator.load_state_dict(D_state)
+		optim_disc.load_state_dict(D_optimizer_state)
+		generator.load_state_dict(G_state)
+		optim_gen.load_state_dict(G_optimizer_state)
 
-# For checking time (0 epochs timestamp)
-now = datetime.now()
-currentTime = now.strftime("%H:%M:%S")
-timeStamps = [currentTime]
+	# If we had checkpoints it would be here
+	epochsDone = 0
 
-# For tqdm bars 
-iters_per_epoch = len(trainDataloader)
-columns = 60
+	# misc data 
+	fake_data = [] #latest generated data
+	real_losses = []
+	fake_losses = []
+	discriminator_losses = []
+	generator_losses = []
 
-# run training loop 
-if real_epochs > 0:
-	print("Starting training Loop...")
+	# For checking time (0 epochs timestamp)
+	now = datetime.now()
+	currentTime = now.strftime("%H:%M:%S")
+	timeStamps = [currentTime]
+
+	# For tqdm bars 
+	iters_per_epoch = len(trainDataloader)
+	columns = 60
+
+	# run training loop 
+	if real_epochs > 0:
+		print("Starting training Loop...")
 	
-D_trains_since_G_train = 0;
-for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols=columns):
-	# run an epoch 
-	print("")
-	for i, batch in tqdm(enumerate(trainDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
-		#run a batch
+	D_trains_since_G_train = 0;
+	for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols=columns):
+		# run an epoch 
+		print("")
+		for i, batch in tqdm(enumerate(trainDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
+			#run a batch
 
-		# train discriminator
-		disc_losses = (real_losses, fake_losses, discriminator_losses)
-		real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
-		D_trains_since_G_train += 1
+			# train discriminator
+			disc_losses = (real_losses, fake_losses, discriminator_losses)
+			real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
+			D_trains_since_G_train += 1
 
-		# only train generator every n_critic iterations or if the discriminator is overperforming
-		D_overperforming = False
-		if epoch >= 1 or i >= 1:
-			D_overperforming = fake_losses[-1] < opt.fake_loss_min
-		if(D_trains_since_G_train >= opt.n_critic or D_overperforming or i == 0):
-			train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
-			D_trains_since_G_train = 0
-		else:
-			generator_losses.append(generator_losses[-1])
+			# only train generator every n_critic iterations or if the discriminator is overperforming
+			D_overperforming = False
+			if epoch >= 1 or i >= 1:
+				D_overperforming = fake_losses[-1] < opt.fake_loss_min
+			if(D_trains_since_G_train >= opt.n_critic or D_overperforming or i == 0):
+				train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
+				D_trains_since_G_train = 0
+			else:
+				generator_losses.append(generator_losses[-1])
 
-		# print to terminal
-		#if(i % opt.update_interval == 0):
-			#print_update()
-			#print(self.optimizer_D.param_groups[0]['betas'])
+			# print to terminal
+			#if(i % opt.update_interval == 0):
+				#print_update()
+				#print(self.optimizer_D.param_groups[0]['betas'])
 
-		fake_data = []
+			fake_data = []
 
-		desc = " - losses r/f/D/G:  "
-		desc += "{:.3f}".format(real_losses[-1])
-		desc += " / " + "{:.4f}".format(fake_losses[-1])
-		desc += " / " + "{:.3f}".format(discriminator_losses[-1])
-		desc += " / " + "{:.1f}".format(generator_losses[-1])
-		print(desc, end='\r')
+			desc = " - losses r/f/D/G:  "
+			desc += "{:.3f}".format(real_losses[-1])
+			desc += " / " + "{:.4f}".format(fake_losses[-1])
+			desc += " / " + "{:.3f}".format(discriminator_losses[-1])
+			desc += " / " + "{:.1f}".format(generator_losses[-1])
+			print(desc, end='\r')
 
-		# save graph every sample_interval iteration
-		if (i % opt.sample_interval == 0):
-			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+			# save graph every sample_interval iteration
+			if (i % opt.sample_interval == 0):
+				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
-	# save graph after each epoch
-	saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+		# save graph after each epoch
+		saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
+		# Here we save a checkpoint. It is automatically registered with
+		# Ray Tune and can be accessed through `session.get_checkpoint()`
+		# API in future iterations.
+		os.makedirs("my_model", exist_ok=True)
+		torch.save(
+			(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
+		)
+		checkpoint = Checkpoint.from_directory("my_model")
+		session.report({"loss": (val_loss / val_steps), "accuracy": correct / total}, checkpoint=checkpoint)
 	
 
-trainEnd = datetime.now()
-if real_epochs > 0:
-	trainTime = (trainEnd - trainStart).total_seconds()
-	print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
-	tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
-	print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
+	trainEnd = datetime.now()
+	if real_epochs > 0:
+		trainTime = (trainEnd - trainStart).total_seconds()
+		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
+		tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
+		print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
 
 
 
