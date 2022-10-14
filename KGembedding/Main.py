@@ -14,7 +14,7 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
-import ray
+import ray #ray imports can be outcommented if not using raytune / checkpoints
 from ray import tune
 from ray.air import session
 from ray.air.checkpoint import Checkpoint
@@ -51,12 +51,14 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # General options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
-parser.add_argument("--use_checkpoint",		type=bool,	default=True,	help="Load latest checkpoint before training?")
+parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
+parser.add_argument("--load_checkpoint",		type=bool,	default=False,	help="Load latest checkpoint before training? (required for raytune)")
+parser.add_argument("--save_checkpoints",		type=bool,	default=False,	help="Save checkpoints throughout training? (required for raytune)")
 parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 
 # Output options 
 parser.add_argument("--sample_interval", type=int,  default=50,    help="Iters between image samples")
+parser.add_argument("--tqdm_columns", type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
@@ -70,13 +72,13 @@ def path_join(p1, p2):
 
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
-inDataDir = path_join(dataDir, 'FB15K237')
+inDataDir = path_join(dataDir, 'nations')
 loss_graphDir = path_join(dataDir, "_loss_graph")
 
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
 
-trainName = 'train.txt' #temporarily use smaller dataset
+trainName = 'train.txt' #can temporarily use smaller dataset
 testName  = 'test.txt'
 validName = 'valid.txt'
 
@@ -167,6 +169,14 @@ validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.b
 
 
 # --- Training ---
+Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
+# define generator and discriminator globally so they can be used in other functions aswell
+generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+if cuda:
+	generator.to(device)
+	discriminator.to(device)
 
 def train(config):
 	real_epochs = opt.n_epochs
@@ -177,17 +187,17 @@ def train(config):
 	# setup
 	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
 	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+
 	if cuda:
 		generator.to(device)
 		discriminator.to(device)
-	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 	loss_func = torch.nn.BCELoss()
 	optim_gen =  torch.optim.Adam(generator.parameters(),		lr=config["lr"], betas=(opt.beta1, 0.999))
 	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
 
 	# Checkpoint restoring
-	if opt.use_raytune or opt.use_checkpoint:
+	if opt.use_raytune or opt.load_checkpoint:
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
 			with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
@@ -214,7 +224,7 @@ def train(config):
 
 	# For tqdm bars 
 	iters_per_epoch = len(trainDataloader)
-	columns = 60
+	columns = opt.tqdm_columns
 
 	# run training loop 
 	if real_epochs > 0:
@@ -267,17 +277,18 @@ def train(config):
 		# Here we save a checkpoint. It is automatically registered with
 		# Ray Tune and can be accessed through `session.get_checkpoint()`
 		# API in future iterations.
-		os.makedirs("my_model", exist_ok=True)
-		torch.save(
-			(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
-		)
-		checkpoint = Checkpoint.from_directory("my_model")
+		if opt.save_checkpoints:
+			os.makedirs("my_model", exist_ok=True)
+			torch.save(
+				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
+			)
+			checkpoint = Checkpoint.from_directory("my_model")
 
-		# Calculate SDS score 
-		if opt.use_raytune:
-			synthData = gen_synth(opt.tune_n_valid_triples)
-			(score, _) = SDS(testData, synthData)
-			session.report({"score": (score)}, checkpoint=checkpoint)
+			# Calculate SDS score 
+			if opt.use_raytune:
+				synthData = gen_synth(opt.tune_n_valid_triples)
+				(score, _) = SDS(testData, synthData)
+				session.report({"score": (score)}, checkpoint=checkpoint)
 	
 
 	trainEnd = datetime.now()
@@ -292,24 +303,25 @@ def train(config):
 
 
 # --- Generating synthetic data ---
+#flip key/value for dictionaries for fast decoding
+genStart = datetime.now()
+entitiesRev = dict()
+relationsRev = dict()
+for key in entities.keys():
+	value = entities[key]
+	entitiesRev[value] = key
+for key in relations.keys():
+	value = relations[key]
+	relationsRev[value] = key
+
 def gen_synth(num_triples = opt.out_n_triples):
 	real_out_triples = num_triples
 	if opt.test_only:
 		real_out_triples = 0
 
-	#flip key/value for dictionaries for fast decoding (clears prior dictionaries to save memory)
-	genStart = datetime.now()
-	entitiesRev = dict()
-	relationsRev = dict()
-	for i in range(len(entities)):
-		(key, value) = entities.popitem()
-		entitiesRev[value] = key
-	for i in range(len(relations)):
-		(key, value) = relations.popitem()
-		relationsRev[value] = key
-
 	syntheticTriples = []
 
+	columns = opt.tqdm_columns
 	for i in tqdm(range(real_out_triples), ncols=columns, desc="gen"):
 		z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
 
@@ -417,10 +429,6 @@ if not opt.test_only:
 		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
 
 	nextEdgeID = 0;
-	#flip entity dictionary again for fast formatting
-	for i in range(len(entitiesRev)):
-		(value, key) = entitiesRev.popitem()
-		entities[key] = value
 	for triple in tqdm(edges, desc="save"):
 		(h, r, t) = (triple.h, triple.r, triple.t)
 		hID, tID = entities[h], entities[t]
