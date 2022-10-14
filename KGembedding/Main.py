@@ -355,7 +355,7 @@ def main(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 
 	tuner = tune.Tuner(
 		tune.with_resources(
-			tune.with_parameters(train_cifar),
+			tune.with_parameters(train),
 			resources={"cpu": 2, "gpu": gpus_per_trial}
 		),
 		tune_config=tune.TuneConfig(
