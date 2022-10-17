@@ -138,13 +138,14 @@ Hypothesis 7: The learning now stops early and more epochs are needed, and outsi
 test: increase epochs and use a hyperparameter tuner
 """
 
-def SDS(A: [Triple], B: [Triple]):
+def SDS(A: [Triple], B: [Triple], printing=True):
 	""" Statistical Disagreement Score
 	Takes two KGs  (intended for a real and a generated)
     Gives back a score of the sum of difference between statistical predictions for A and B
 	Assumes that every node has a unique name (maybe has to, given input is just a list of triples)
 	"""
-	print("Calculating SDS...")
+	if printing:
+		print("Calculating SDS...")
 	results = []
 
 	# --- calculate P((h,_,_)), P((_,r,_)) and P((_,_,t)) ---
@@ -206,7 +207,10 @@ def SDS(A: [Triple], B: [Triple]):
 
 	#calculate triples (x,y,_) present in both A and B
 	C = []
-	for h in tqdm(Ax.keys(), desc="C"):
+	heads = Ax.keys()
+	if printing:
+		heads = tqdm(heads, desc="C")
+	for h in heads:
 		for r in Ax[h]:
 			if h in Bx.keys():
 				if r in Bx[h] and (h, r, "") not in C:
@@ -224,7 +228,10 @@ def SDS(A: [Triple], B: [Triple]):
 	#calculate the SDS for P((x,a,_) | (x,b,_)) (ca. O(n^2) time in testing)
 	sum = 0;
 	n = 0;
-	for a in tqdm(yC, desc="sum"):
+	ys = yC
+	if printing:
+		ys = tqdm(ys, desc="sum")
+	for a in ys:
 		for b in yC:
 			#count up number of nodes in A with name x that have (both a and b) and (b)
 			Axab = 0;

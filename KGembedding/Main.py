@@ -52,8 +52,8 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 # General options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
 parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
-parser.add_argument("--load_checkpoint",		type=bool,	default=False,	help="Load latest checkpoint before training? (required for raytune)")
-parser.add_argument("--save_checkpoints",		type=bool,	default=False,	help="Save checkpoints throughout training? (required for raytune)")
+parser.add_argument("--load_checkpoint",		type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
+parser.add_argument("--save_checkpoints",		type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 
 # Output options 
@@ -231,10 +231,16 @@ def train(config):
 		print("Starting training Loop...")
 	
 	D_trains_since_G_train = 0;
-	for epoch in tqdm(range(epochsDone, real_epochs), position=0, leave=False, ncols=columns):
+	epochs = range(epochsDone, real_epochs)
+	if not opt.use_raytune:
+			epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
+	for epoch in epochs:
 		# run an epoch 
 		print("")
-		for i, batch in tqdm(enumerate(trainDataloader), position=0, leave=True, total=iters_per_epoch, ncols=columns):
+		dataLoader = enumerate(trainDataloader)
+		if not opt.use_raytune:
+			dataLoader = tqdm(dataLoader, position=0, leave=True, total=iters_per_epoch, ncols=columns)
+		for i, batch in dataLoader:
 			#run a batch
 
 			# train discriminator
@@ -259,25 +265,27 @@ def train(config):
 
 			fake_data = []
 
-			desc = " - losses r/f/D/G:  "
-			desc += "{:.3f}".format(real_losses[-1])
-			desc += " / " + "{:.4f}".format(fake_losses[-1])
-			desc += " / " + "{:.3f}".format(discriminator_losses[-1])
-			desc += " / " + "{:.1f}".format(generator_losses[-1])
-			print(desc, end='\r')
+			if not opt.use_raytune:
+				desc = " - losses r/f/D/G:  "
+				desc += "{:.3f}".format(real_losses[-1])
+				desc += " / " + "{:.4f}".format(fake_losses[-1])
+				desc += " / " + "{:.3f}".format(discriminator_losses[-1])
+				desc += " / " + "{:.1f}".format(generator_losses[-1])
+				print(desc, end='\r')
 
 			# save graph every sample_interval iteration
-			if (i % opt.sample_interval == 0):
+			if (i % opt.sample_interval == 0) and not opt.use_raytune:
 				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 		# save graph after each epoch
-		saveGraph(graphDirAndName, generator_losses, discriminator_losses)
+		if not opt.use_raytune:
+			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 
 		# Here we save a checkpoint. It is automatically registered with
 		# Ray Tune and can be accessed through `session.get_checkpoint()`
 		# API in future iterations.
-		if opt.save_checkpoints:
+		if opt.use_raytune or opt.save_checkpoints:
 			os.makedirs("my_model", exist_ok=True)
 			torch.save(
 				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
@@ -286,13 +294,13 @@ def train(config):
 
 			# Calculate SDS score 
 			if opt.use_raytune:
-				synthData = gen_synth(opt.tune_n_valid_triples)
-				(score, _) = SDS(testData, synthData)
+				synthData = gen_synth(opt.tune_n_valid_triples, printing=False)
+				(score, _) = SDS(testData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
 
 	trainEnd = datetime.now()
-	if real_epochs > 0:
+	if real_epochs > 0 and not opt.use_raytune:
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
 		tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
@@ -314,7 +322,7 @@ for key in relations.keys():
 	value = relations[key]
 	relationsRev[value] = key
 
-def gen_synth(num_triples = opt.out_n_triples):
+def gen_synth(num_triples = opt.out_n_triples, printing=True):
 	real_out_triples = num_triples
 	if opt.test_only:
 		real_out_triples = 0
@@ -322,7 +330,10 @@ def gen_synth(num_triples = opt.out_n_triples):
 	syntheticTriples = []
 
 	columns = opt.tqdm_columns
-	for i in tqdm(range(real_out_triples), ncols=columns, desc="gen"):
+	iters = range(real_out_triples)
+	if printing:
+		iters = tqdm(iters, ncols=columns, desc="gen")
+	for i in iters:
 		z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
 
 		start = datetime.now()
@@ -336,12 +347,13 @@ def gen_synth(num_triples = opt.out_n_triples):
 		end = datetime.now()
 		time1 = (mid - start).total_seconds()
 		time2 = (end - mid).total_seconds()
-		print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
+		if printing:
+			print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
 
 		syntheticTriples.append(triple)
 	
 	genEnd = datetime.now()
-	if real_out_triples > 0:
+	if real_out_triples > 0 and printing:
 		genTime = (genEnd - genStart).total_seconds()
 		print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
 		tpsGen = (len(syntheticTriples))/genTime;
@@ -383,12 +395,10 @@ def main(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	best_result = results.get_best_result("score", "min")
 	
 	print("Best trial config: {}".format(best_result.config))
-	print("Best trial final validation loss: {}".format(
-		best_result.metrics["loss"]))
-	print("Best trial final validation accuracy: {}".format(
-		best_result.metrics["accuracy"]))
+	print("Best trial final testing loss: {}".format(
+		best_result.metrics["score"]))
 	
-	test_best_model(best_result)
+	#test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
 if opt.use_raytune:
@@ -405,13 +415,15 @@ else:
 
 
 # generate final synthetic data
-syntheticTriples = gen_synth()
+syntheticTriples = []
+if not opt.use_raytune:
+	syntheticTriples = gen_synth()
 
 
 
 # --- Data formatting & saving  (and maybe synthetic data saving) ---
 
-if not opt.test_only:
+if not opt.test_only and not opt.use_raytune:
 	# make/overwrite generated files 
 	nodesFile = open("nodes.csv", "w")
 	edgesFile = open("edges.csv", "w")
@@ -446,25 +458,28 @@ if not opt.test_only:
 
 
 # --- Testing ---
-print("\nTesting:")
-(score, results) = (0, [])
-if not opt.test_only:
-	(score, results) = SDS(validData, syntheticTriples)
-else:
-	(score, results) = SDS(validData, genData)
-
-print("\nDetailed SDS results: (lower = better)")
-for result in results:
-	(name, n, sum) = result
-	print(name + " result:")
-	#print("n size: " + str(n))
-	#print("sum: " + "{:.2f}".format(sum))
-	if n != 0:
-		print("avg.: " + "{:.2f}".format(sum/n) + "\n")
+if not opt.use_raytune:
+	print("\nTesting:")
+	(score, results) = (0, [])
+	if not opt.test_only:
+		#test on newly generated data
+		(score, results) = SDS(validData, syntheticTriples)
 	else:
-		print("avg.: NaN" + " (lower = better)\n")
-print("Overall SDS score: (lower = better)")
-print("{:.2f}".format(score))
+		#test on generated data from last run
+		(score, results) = SDS(validData, genData)
+
+	print("\nDetailed SDS results: (lower = better)")
+	for result in results:
+		(name, n, sum) = result
+		print(name + " result:")
+		#print("n size: " + str(n))
+		#print("sum: " + "{:.2f}".format(sum))
+		if n != 0:
+			print("avg.: " + "{:.2f}".format(sum/n) + "\n")
+		else:
+			print("avg.: NaN" + " (lower = better)\n")
+	print("Overall SDS score: (lower = better)")
+	print("{:.2f}".format(score))
 
 
 print("Done!")
