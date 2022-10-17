@@ -54,13 +54,13 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",				type=int,	default=20,	help="Total samples taken with raytune")
+parser.add_argument("--tune_samples",				type=int,	default=5,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
-parser.add_argument("--mode",			type=str,	default="test",	help="Which thing to do, overall (run/tune/test)")
+parser.add_argument("--mode",			type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
@@ -87,7 +87,7 @@ loss_graphDir = path_join(dataDir, "_loss_graph")
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
 
-trainName = 'train.txt' #can temporarily use smaller dataset
+trainName = 'train.txt'
 testName  = 'test.txt'
 validName = 'valid.txt'
 
@@ -101,6 +101,10 @@ print("Current seed: " + str(seed))
 cuda = opt.use_gpu and torch.cuda.is_available()
 device = 'cpu'
 if cuda: device = 'cuda:0'
+
+
+
+
 
 # --- Dataset loading & formatting ---
 os.chdir(inDataDir)
@@ -167,6 +171,7 @@ validDataEncoder = Encoder(validData, entities, entitiesN, relations, relationsN
 
 
 
+
 # --- Training ---
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -183,10 +188,7 @@ def train(config):
 	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	
-
 	real_epochs = opt.n_epochs
-	if opt.mode == "test":
-		real_epochs = 0
 
 	trainStart = datetime.now()
 	# setup
@@ -308,7 +310,7 @@ def train(config):
 	if real_epochs > 0 and opt.mode != "tune":
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
-		tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
+		tpsTrain = (len(trainData)*real_epochs)/trainTime;
 		print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
 
 
@@ -331,14 +333,10 @@ def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printi
 	# When raytune is used, the actual latent dim may differ from option
 	real_latent_dim = generator.model[0].in_features
 
-	real_out_triples = num_triples
-	if opt.mode == "test":
-		real_out_triples = 0
-
 	syntheticTriples = []
 
 	columns = opt.tqdm_columns
-	iters = range(real_out_triples)
+	iters = range(num_triples)
 	if printing:
 		iters = tqdm(iters, ncols=columns, desc="gen")
 	for i in iters:
@@ -361,13 +359,14 @@ def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printi
 		syntheticTriples.append(triple)
 	
 	genEnd = datetime.now()
-	if real_out_triples > 0 and printing:
+	if printing:
 		genTime = (genEnd - genStart).total_seconds()
 		print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
 		tpsGen = (len(syntheticTriples))/genTime;
 		print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
 
 	return syntheticTriples
+
 
 
 
@@ -404,29 +403,28 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	#test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
-if opt.mode != "test":
-	if opt.mode == "tune":
-		config = {
-			#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-			#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-			"lr": tune.loguniform(1e-4, 1e-1),
-			"batch_size": tune.choice([4, 16, 64, 256]),
-			"latent_dim": tune.choice([32, 64, 128, 256]),
-			"n_critic": tune.choice([1, 2, 3, 4]),
-			"fake_loss_min": tune.loguniform(1e-6, 1e-1),
-		}
-		main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
-	else:
-		config = {
-			#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-			#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-			"lr": opt.lr,
-			"batch_size": opt.batch_size,
-			"latent_dim": opt.latent_dim,
-			"n_critic": opt.n_critic,
-			"fake_loss_min": opt.fake_loss_min,
-		}
-		train(config)
+if opt.mode == "tune":
+	config = {
+		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		"lr": tune.loguniform(1e-4, 1e-1),
+		"batch_size": tune.choice([4, 16, 64, 256]),
+		"latent_dim": tune.choice([32, 64, 128, 256]),
+		"n_critic": tune.choice([1, 2, 3, 4]),
+		"fake_loss_min": tune.loguniform(1e-6, 1e-1),
+	}
+	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
+elif opt.mode == "run":
+	config = {
+		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		"lr": opt.lr,
+		"batch_size": opt.batch_size,
+		"latent_dim": opt.latent_dim,
+		"n_critic": opt.n_critic,
+		"fake_loss_min": opt.fake_loss_min,
+	}
+	train(config)
 
 
 
@@ -434,6 +432,7 @@ if opt.mode != "test":
 syntheticTriples = []
 if opt.mode == "run":
 	syntheticTriples = gen_synth()
+
 
 
 
@@ -477,12 +476,15 @@ if opt.mode == "run":
 if opt.mode != "tune":
 	print("\nTesting:")
 	(score, results) = (0, [])
-	if opt.mode != "test":
+	if opt.mode == "run":
 		#test on newly generated data
 		(score, results) = SDS(validData, syntheticTriples)
-	else: #mode = test
+	elif opt.mode == "test":
 		#test on generated data from last run
 		(score, results) = SDS(validData, genData)
+	elif opt.mode == "dataTest":
+		#test difference between test and validation data
+		(score, results) = SDS(validData, testData)
 
 	print("\nDetailed SDS results: (lower = better)")
 	for result in results:
