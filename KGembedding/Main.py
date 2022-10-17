@@ -74,6 +74,10 @@ parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of
 opt = parser.parse_args()
 print(opt)
 
+
+
+
+# --- setup ---
 # Dataset directory
 def path_join(p1, p2):
 	return os.path.join(p1, p2)
@@ -90,11 +94,9 @@ trainName = 'train.txt'
 testName  = 'test.txt'
 validName = 'valid.txt'
 
-
 # Seed
 seed = torch.Generator().seed()
 print("Current seed: " + str(seed))
-
 
 # Computing device
 cuda = opt.use_gpu and torch.cuda.is_available()
