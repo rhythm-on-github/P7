@@ -45,7 +45,7 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.0002,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=2,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
 #tuning not implemented
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
@@ -59,7 +59,7 @@ parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus t
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
@@ -190,6 +190,8 @@ def train(config):
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	
 	real_epochs = opt.n_epochs
+	if opt.mode == "tune":
+		real_epochs = opt.tune_max_epochs
 
 	trainStart = datetime.now()
 	# setup
@@ -215,7 +217,6 @@ def train(config):
 			generator.load_state_dict(G_state)
 			optim_gen.load_state_dict(G_optimizer_state)
 
-	# If we had checkpoints it would be here
 	epochsDone = 0
 
 	# misc data 
