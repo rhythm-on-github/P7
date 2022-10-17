@@ -43,7 +43,7 @@ parser.add_argument("--lr",         type=float, default=0.0002, help="learning r
 parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
-parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
+parser.add_argument("--f_loss_min", type=float, default=0.0002,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
 parser.add_argument("--n_epochs",   type=int,   default=2,   help="number of epochs of training")
 #tuning not implemented
@@ -52,18 +52,18 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",				type=int,	default=5,	help="Total samples taken with raytune")
-parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
-parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
-parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
+parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
+parser.add_argument("--max_concurrent_samples",	type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
+parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
+parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",			type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
-parser.add_argument("--n_cpu",			type=int,   default=8,      help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
@@ -257,7 +257,7 @@ def train(config):
 			# only train generator every n_critic iterations or if the discriminator is overperforming
 			D_overperforming = False
 			if epoch >= 1 or i >= 1:
-				D_overperforming = fake_losses[-1] < config["fake_loss_min"]
+				D_overperforming = fake_losses[-1] < config["f_loss_min"]
 			if(D_trains_since_G_train >= config["n_critic"] or D_overperforming or i == 0):
 				train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 				D_trains_since_G_train = 0
@@ -399,24 +399,24 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 #potentially run raytune, otherwise just train once
 if opt.mode == "tune":
 	config = {
-		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr": tune.loguniform(1e-4, 1e-1),
-		"batch_size": tune.choice([4, 16, 64, 256]),
-		"latent_dim": tune.choice([32, 64, 128, 256]),
-		"n_critic": tune.choice([1, 2, 3, 4]),
-		"fake_loss_min": tune.loguniform(1e-6, 1e-1),
+		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		#"l2":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		"lr":			tune.loguniform(1e-4, 1e-1),
+		"batch_size":	tune.choice([4, 16, 64, 256]),
+		"latent_dim":	tune.choice([32, 64, 128, 256]),
+		"n_critic":		tune.choice([1, 2, 3, 4]),
+		"f_loss_min":	tune.loguniform(1e-6, 1e-1),
 	}
 	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
 elif opt.mode == "run":
 	config = {
-		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr": opt.lr,
-		"batch_size": opt.batch_size,
-		"latent_dim": opt.latent_dim,
-		"n_critic": opt.n_critic,
-		"fake_loss_min": opt.fake_loss_min,
+		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		#"l2":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		"lr":			opt.lr,
+		"batch_size":	opt.batch_size,
+		"latent_dim":	opt.latent_dim,
+		"n_critic":		opt.n_critic,
+		"f_loss_min":	opt.f_loss_min,
 	}
 	train(config)
 
