@@ -54,16 +54,15 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
 parser.add_argument("--tune_samples",				type=int,	default=20,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
+parser.add_argument("--mode",			type=str,	default="test",	help="Which thing to do, overall (run/tune/test)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
-parser.add_argument("--test_only",			type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
@@ -127,7 +126,7 @@ relationID = 0
 genDir = path_join(dataDir, "_gen")
 os.chdir(genDir)
 genData = []
-if opt.test_only:
+if opt.mode == "test":
 	genFile = open("triples.csv", 'r')
 	dataToLoad.append((genFile, genData))
 
@@ -186,7 +185,7 @@ def train(config):
 	
 
 	real_epochs = opt.n_epochs
-	if opt.test_only:
+	if opt.mode == "test":
 		real_epochs = 0
 
 	trainStart = datetime.now()
@@ -203,7 +202,7 @@ def train(config):
 	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
 
 	# Checkpoint restoring
-	if opt.use_raytune or opt.load_checkpoint:
+	if opt.mode == "tune" or opt.load_checkpoint:
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
 			with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
@@ -238,13 +237,13 @@ def train(config):
 	
 	D_trains_since_G_train = 0;
 	epochs = range(epochsDone, real_epochs)
-	if not opt.use_raytune:
+	if opt.mode != "tune":
 			epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
 	for epoch in epochs:
 		# run an epoch 
 		print("")
 		dataLoader = enumerate(trainDataloader)
-		if not opt.use_raytune:
+		if opt.mode != "tune":
 			dataLoader = tqdm(dataLoader, position=0, leave=True, total=iters_per_epoch, ncols=columns)
 		for i, batch in dataLoader:
 			#run a batch
@@ -271,7 +270,7 @@ def train(config):
 
 			fake_data = []
 
-			if not opt.use_raytune:
+			if opt.mode != "tune":
 				desc = " - losses r/f/D/G:  "
 				desc += "{:.3f}".format(real_losses[-1])
 				desc += " / " + "{:.4f}".format(fake_losses[-1])
@@ -280,18 +279,18 @@ def train(config):
 				print(desc, end='\r')
 
 			# save graph every sample_interval iteration
-			if (i % opt.sample_interval == 0) and not opt.use_raytune:
+			if (i % opt.sample_interval == 0) and opt.mode != "tune":
 				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 		# save graph after each epoch
-		if not opt.use_raytune:
+		if opt.mode != "tune":
 			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 
 		# Here we save a checkpoint. It is automatically registered with
 		# Ray Tune and can be accessed through `session.get_checkpoint()`
 		# API in future iterations.
-		if opt.use_raytune or opt.save_checkpoints:
+		if opt.mode == "tune" or opt.save_checkpoints:
 			os.makedirs("my_model", exist_ok=True)
 			torch.save(
 				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
@@ -299,14 +298,14 @@ def train(config):
 			checkpoint = Checkpoint.from_directory("my_model")
 
 			# Calculate SDS score 
-			if opt.use_raytune:
+			if opt.mode == "tune":
 				synthData = gen_synth(opt.tune_n_valid_triples, latent_dim=config["latent_dim"], printing=False)
 				(score, _) = SDS(testData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
 
 	trainEnd = datetime.now()
-	if real_epochs > 0 and not opt.use_raytune:
+	if real_epochs > 0 and opt.mode != "tune":
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
 		tpsTrain = (len(trainData)*opt.n_epochs)/trainTime;
@@ -333,7 +332,7 @@ def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printi
 	real_latent_dim = generator.model[0].in_features
 
 	real_out_triples = num_triples
-	if opt.test_only:
+	if opt.mode == "test":
 		real_out_triples = 0
 
 	syntheticTriples = []
@@ -405,8 +404,8 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	#test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
-if not opt.test_only:
-	if opt.use_raytune:
+if opt.mode != "test":
+	if opt.mode == "tune":
 		config = {
 			#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 			#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
@@ -433,14 +432,14 @@ if not opt.test_only:
 
 # generate final synthetic data
 syntheticTriples = []
-if not opt.use_raytune and not opt.test_only:
+if opt.mode == "run":
 	syntheticTriples = gen_synth()
 
 
 
 # --- Data formatting & saving  (and maybe synthetic data saving) ---
 
-if not opt.test_only and not opt.use_raytune:
+if opt.mode == "run":
 	# make/overwrite generated files 
 	nodesFile = open("nodes.csv", "w")
 	edgesFile = open("edges.csv", "w")
@@ -475,13 +474,13 @@ if not opt.test_only and not opt.use_raytune:
 
 
 # --- Testing ---
-if (not opt.use_raytune) or opt.test_only:
+if opt.mode != "tune":
 	print("\nTesting:")
 	(score, results) = (0, [])
-	if not opt.test_only:
+	if opt.mode != "test":
 		#test on newly generated data
 		(score, results) = SDS(validData, syntheticTriples)
-	else:
+	else: #mode = test
 		#test on generated data from last run
 		(score, results) = SDS(validData, genData)
 
