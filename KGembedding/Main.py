@@ -94,9 +94,6 @@ cuda = tryCuda and torch.cuda.is_available()
 device = 'cpu'
 if cuda: device = 'cuda:0'
 
-# use raytune flag
-rtune = False
-
 # --- Dataset loading & formatting ---
 os.chdir(inDataDir)
 trainFile = open(trainName, 'r')
@@ -164,14 +161,6 @@ trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=opt.b
 testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=opt.batch_size, shuffle=True)
 validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.batch_size, shuffle=True)
 
-
-# raytune metrics and searchspace
-config = {
-    "l1": tune.sample_from(lambda _: 2**np.random.randint(2, 9)),
-    "l2": tune.sample_from(lambda _: 2**np.random.randint(2, 9)),
-    "lr": tune.loguniform(1e-4, 1e-1),
-    "batch_size": tune.choice([2, 4, 8, 16])
-}
 
 
 # --- Training ---
