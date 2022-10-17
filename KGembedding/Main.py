@@ -51,11 +51,11 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
-parser.add_argument("--tune_samples",				type=int,	default=10,	help="Total samples taken with raytune")
-parser.add_argument("--max_concurrent_samples",		type=int,	default=None,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
+parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
+parser.add_argument("--tune_samples",				type=int,	default=100,	help="Total samples taken with raytune")
+parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
-parser.add_argument("--tune_gpus",			type=int,	default=1,	help="How many gpus (per per trial) with raytune")
+parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
