@@ -180,7 +180,7 @@ def train(config):
 	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
-
+	
 
 	real_epochs = opt.n_epochs
 	if opt.test_only:
@@ -188,8 +188,8 @@ def train(config):
 
 	trainStart = datetime.now()
 	# setup
-	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
-	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+	generator	=		Generator(config["latent_dim"], entitiesN, relationsN)
+	discriminator = Discriminator(config["latent_dim"], entitiesN, relationsN)
 
 	if cuda:
 		generator.to(device)
@@ -297,7 +297,7 @@ def train(config):
 
 			# Calculate SDS score 
 			if opt.use_raytune:
-				synthData = gen_synth(opt.tune_n_valid_triples, printing=False)
+				synthData = gen_synth(opt.tune_n_valid_triples, latent_dim=config["latent_dim"], printing=False)
 				(score, _) = SDS(testData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
@@ -325,7 +325,10 @@ for key in relations.keys():
 	value = relations[key]
 	relationsRev[value] = key
 
-def gen_synth(num_triples = opt.out_n_triples, printing=True):
+def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printing=True):
+	# When raytune is used, the actual latent dim may differ from option
+	real_latent_dim = generator.model[0].in_features
+
 	real_out_triples = num_triples
 	if opt.test_only:
 		real_out_triples = 0
@@ -337,7 +340,7 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 	if printing:
 		iters = tqdm(iters, ncols=columns, desc="gen")
 	for i in iters:
-		z = Variable(Tensor(np.random.normal(0, 1, (opt.latent_dim,))))
+		z = Variable(Tensor(np.random.normal(0, 1, (real_latent_dim,))))
 
 		start = datetime.now()
 
@@ -405,6 +408,7 @@ if opt.use_raytune:
 		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		"lr": tune.loguniform(1e-4, 1e-1),
 		"batch_size": tune.choice([4, 16, 64, 256]),
+		"latent_dim": tune.choice([32, 64, 128, 256]),
 		"n_critic": tune.choice([1, 2, 3, 4])
 	}
 	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
@@ -414,6 +418,7 @@ else:
 		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		"lr": opt.lr,
 		"batch_size": opt.batch_size,
+		"latent_dim": opt.latent_dim,
 		"n_critic": opt.n_critic
 	}
 	train(config)

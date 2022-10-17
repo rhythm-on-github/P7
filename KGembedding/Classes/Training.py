@@ -6,6 +6,9 @@ from torch.autograd import Variable
 def train_discriminator(opt, Tensor, data, genData, device, discriminator, generator, optim_disc, loss_func, disc_losses):
 	optim_disc.zero_grad()
 
+	# When raytune is used, the actual latent dim may differ from option
+	real_latent_dim = generator.model[0].in_features
+
 	# Configure input
 	real_data = Variable(data.type(Tensor))
 
@@ -18,7 +21,7 @@ def train_discriminator(opt, Tensor, data, genData, device, discriminator, gener
 	real_loss = loss_func(real_preds, labels)
 
 	# use generated data
-	z = Variable(Tensor(np.random.normal(0, 1, (data.shape[0], opt.latent_dim))))
+	z = Variable(Tensor(np.random.normal(0, 1, (data.shape[0], real_latent_dim))))
 	fake_data = generator(z)
 	labels2 = torch.full((real_batch_size,), 0, dtype=torch.float, device=device)
 	fake_preds = discriminator(fake_data.detach()).view(-1)
