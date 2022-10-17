@@ -39,7 +39,7 @@ from NNs.simpGAN import *
 # Hyperparameters 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
-parser.add_argument("--batch_size", type=int,   default=512,     help="size of the batches")
+parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
@@ -54,7 +54,7 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
+parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
 parser.add_argument("--tune_samples",				type=int,	default=100,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
@@ -139,7 +139,7 @@ for (file, data) in dataToLoad:
 		split = line.split('\t')
 		h = split[0]
 		r = split[1]
-		t = split[2][:-2] #remove \n
+		t = split[2][:-1] #remove \n
 		triple = Triple(h, r, t)
 		data.append(triple)
 		#keep track of unique entities and relations + their indices
