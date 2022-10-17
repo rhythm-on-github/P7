@@ -49,21 +49,26 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
 
-# General options
+# Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
-parser.add_argument("--load_checkpoint",		type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
-parser.add_argument("--save_checkpoints",		type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
-parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
-parser.add_argument("--use_gpu",		type=bool,	default=True,	help="use GPU for training? (cuda)")
+parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
+parser.add_argument("--tune_samples",		type=int,	default=3,	help="How many samples at a time with raytune?")
+parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune?")
+parser.add_argument("--tune_gpus",			type=int,	default=1,	help="How many gpus (per per trial) with raytune?")
+
+# General options
+parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
+parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
+parser.add_argument("--test_only",			type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
+parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
-parser.add_argument("--sample_interval", type=int,  default=50,    help="Iters between image samples")
-parser.add_argument("--tqdm_columns", type=int,  default=60,    help="Total text columns for tqdm loading bars")
-#parser.add_argument("--update_interval", type=int,  default=50,    help="iters between terminal updates")
-#parser.add_argument("--epochs_per_save", type=int,  default=5,    help="epochs between model saves")
-#parser.add_argument("--split_disc_loss", type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",	type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
+parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
+#parser.add_argument("--update_interval",	type=int,  default=50,    help="iters between terminal updates")
+#parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
+#parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -156,10 +161,6 @@ trainDataEncoder = Encoder(trainData, entities, entitiesN, relations, relationsN
 testDataEncoder  = Encoder(testData,  entities, entitiesN, relations, relationsN)
 validDataEncoder = Encoder(validData, entities, entitiesN, relations, relationsN)
 
-# make data loaders
-trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=opt.batch_size, shuffle=True)
-testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=opt.batch_size, shuffle=True)
-validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=opt.batch_size, shuffle=True)
 
 
 
@@ -174,6 +175,12 @@ if cuda:
 	discriminator.to(device)
 
 def train(config):
+	# make data loaders
+	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
+	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
+	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
+
+
 	real_epochs = opt.n_epochs
 	if opt.test_only:
 		real_epochs = 0
@@ -360,13 +367,7 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 
 
 # --- hyperparameter tuning ---
-def main(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
-	config = {
-		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr": tune.loguniform(1e-4, 1e-1),
-		#"batch_size": tune.choice([2, 4, 8, 16])
-	}
+def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	scheduler = ASHAScheduler(
 		max_t=max_num_epochs,
 		grace_period=1,
@@ -397,13 +398,19 @@ def main(num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 
 #potentially run raytune, otherwise just train once
 if opt.use_raytune:
-	main(num_samples=2, max_num_epochs=2, gpus_per_trial=0)
+	config = {
+		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+		"lr": tune.loguniform(1e-4, 1e-1),
+		"batch_size": tune.choice([4, 16, 64, 256])
+	}
+	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
 else:
 	config = {
 		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		"lr": opt.lr,
-		#"batch_size": tune.choice([2, 4, 8, 16])
+		"batch_size": opt.batch_size
 	}
 	train(config)
 
