@@ -55,6 +55,7 @@ parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytun
 parser.add_argument("--load_checkpoint",		type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",		type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--test_only",		type=bool,	default=False,	help="Skip training/generating/saving and just load generated data for testing?")
+parser.add_argument("--use_gpu",		type=bool,	default=True,	help="use GPU for training? (cuda)")
 
 # Output options 
 parser.add_argument("--sample_interval", type=int,  default=50,    help="Iters between image samples")
@@ -89,8 +90,7 @@ print("Current seed: " + str(seed))
 
 
 # Computing device
-tryCuda = True 
-cuda = tryCuda and torch.cuda.is_available()
+cuda = opt.use_gpu and torch.cuda.is_available()
 device = 'cpu'
 if cuda: device = 'cuda:0'
 
