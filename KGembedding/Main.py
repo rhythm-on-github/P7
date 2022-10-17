@@ -58,11 +58,12 @@ parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epo
 parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",			type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
-parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu",			type=int,   default=8,      help="number of cpu threads to use during batch generation")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
@@ -79,7 +80,7 @@ def path_join(p1, p2):
 
 workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
-inDataDir = path_join(dataDir, 'nations')
+inDataDir = path_join(dataDir, opt.dataset)
 loss_graphDir = path_join(dataDir, "_loss_graph")
 
 # filepath for storing loss graph
