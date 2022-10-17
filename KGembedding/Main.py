@@ -54,8 +54,8 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
-parser.add_argument("--tune_samples",				type=int,	default=100,	help="Total samples taken with raytune")
+parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
+parser.add_argument("--tune_samples",				type=int,	default=20,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",		type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",			type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
@@ -405,34 +405,35 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	#test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
-if opt.use_raytune:
-	config = {
-		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr": tune.loguniform(1e-4, 1e-1),
-		"batch_size": tune.choice([4, 16, 64, 256]),
-		"latent_dim": tune.choice([32, 64, 128, 256]),
-		"n_critic": tune.choice([1, 2, 3, 4]),
-		"fake_loss_min": tune.loguniform(1e-6, 1e-1),
-	}
-	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
-else:
-	config = {
-		#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr": opt.lr,
-		"batch_size": opt.batch_size,
-		"latent_dim": opt.latent_dim,
-		"n_critic": opt.n_critic,
-		"fake_loss_min": opt.fake_loss_min,
-	}
-	train(config)
+if not opt.test_only:
+	if opt.use_raytune:
+		config = {
+			#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+			#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+			"lr": tune.loguniform(1e-4, 1e-1),
+			"batch_size": tune.choice([4, 16, 64, 256]),
+			"latent_dim": tune.choice([32, 64, 128, 256]),
+			"n_critic": tune.choice([1, 2, 3, 4]),
+			"fake_loss_min": tune.loguniform(1e-6, 1e-1),
+		}
+		main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
+	else:
+		config = {
+			#"l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+			#"l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+			"lr": opt.lr,
+			"batch_size": opt.batch_size,
+			"latent_dim": opt.latent_dim,
+			"n_critic": opt.n_critic,
+			"fake_loss_min": opt.fake_loss_min,
+		}
+		train(config)
 
 
 
 # generate final synthetic data
 syntheticTriples = []
-if not opt.use_raytune:
+if not opt.use_raytune and not opt.test_only:
 	syntheticTriples = gen_synth()
 
 
@@ -474,7 +475,7 @@ if not opt.test_only and not opt.use_raytune:
 
 
 # --- Testing ---
-if not opt.use_raytune:
+if (not opt.use_raytune) or opt.test_only:
 	print("\nTesting:")
 	(score, results) = (0, [])
 	if not opt.test_only:
