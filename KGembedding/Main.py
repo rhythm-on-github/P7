@@ -37,16 +37,18 @@ from Classes.Graph import *
 from NNs.simpGAN import *
 
 # Hyperparameters 
+#tuning implemented
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
-parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
+parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
+parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
+#tuning not explicitly implemented
+parser.add_argument("--n_epochs",   type=int,   default=2,   help="number of epochs of training")
+#tuning not implemented
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
-parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="target minimum fake loss for D")
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
@@ -60,6 +62,7 @@ parser.add_argument("--mode",			type=str,	default="run",	help="Which thing to do
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
+parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
