@@ -239,7 +239,7 @@ def train(config):
 	if real_epochs > 0:
 		print("Starting training Loop...")
 	
-	D_trains_since_G_train = 0;
+	D_trains_since_G_train = 0
 	epochs = range(epochsDone, real_epochs)
 	if opt.mode != "tune":
 			epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
@@ -307,7 +307,7 @@ def train(config):
 	if real_epochs > 0 and opt.mode != "tune":
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
-		tpsTrain = (len(trainData)*real_epochs)/trainTime;
+		tpsTrain = (len(trainData)*real_epochs)/trainTime
 		print("Average triples/s:" + "{:.0f}".format(tpsTrain) + "\n")
 
 
@@ -359,7 +359,7 @@ def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printi
 	if printing:
 		genTime = (genEnd - genStart).total_seconds()
 		print("\nGeneration time: " + "{:.0f}".format(genTime) + " seconds", end="")
-		tpsGen = (len(syntheticTriples))/genTime;
+		tpsGen = (len(syntheticTriples))/genTime
 		print("Average triples/s:" + "{:.0f}".format(tpsGen) + "\n")
 
 	return syntheticTriples
@@ -452,7 +452,7 @@ if opt.mode == "run":
 	for i in tqdm(range(len(nodes)), desc="save"):
 		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
 
-	nextEdgeID = 0;
+	nextEdgeID = 0
 	for triple in tqdm(edges, desc="save"):
 		(h, r, t) = (triple.h, triple.r, triple.t)
 		hID, tID = entities[h], entities[t]

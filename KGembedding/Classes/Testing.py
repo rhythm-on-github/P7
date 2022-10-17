@@ -226,24 +226,24 @@ def SDS(A: [Triple], B: [Triple], printing=True):
 			yC.append(y)
 
 	#calculate the SDS for P((x,a,_) | (x,b,_)) (ca. O(n^2) time in testing)
-	sum = 0;
-	n = 0;
+	sum = 0
+	n = 0
 	ys = yC
 	if printing:
 		ys = tqdm(ys, desc="sum")
 	for a in ys:
 		for b in yC:
 			#count up number of nodes in A with name x that have (both a and b) and (b)
-			Axab = 0;
-			Axb = 0;
+			Axab = 0
+			Axb = 0
 			for x in Ax.keys():
 				if b in Ax[x]:
 					Axb += 1
 					if a in Ax[x]:
 						Axab += 1
 			#count up number of nodes in B with name x that have (both a and b) and (b)
-			Bxab = 0;
-			Bxb = 0;
+			Bxab = 0
+			Bxb = 0
 			for x in Bx.keys():
 				if b in Bx[x]:
 					Bxb += 1
@@ -251,7 +251,7 @@ def SDS(A: [Triple], B: [Triple], printing=True):
 						Bxab += 1
 			#calculate difference and add to sum
 			sum += abs((Axab/Axb)-(Bxab/Bxb))
-			n += 1;
+			n += 1
 
 	results.append(("P((x,a,_) | (x,b,_))", n, sum))
 
