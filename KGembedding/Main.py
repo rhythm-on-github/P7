@@ -1,6 +1,7 @@
 # Documentation
 # install for IPython: https://ipython.org/install.html 
 # Argparse code modified from: https://github.com/eriklindernoren/PyTorch-GAN/blob/master/implementations/wgan/wgan.py 
+# Ray tune code modified from: https://docs.ray.io/en/latest/tune/examples/tune-pytorch-cifar.html#the-train-function 
 #
 #
 # end of documentation
