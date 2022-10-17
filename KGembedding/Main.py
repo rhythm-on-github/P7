@@ -15,7 +15,9 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
-import ray #ray imports can be outcommented if not using raytune / checkpoints
+
+#ray imports can be outcommented if not using raytune / checkpoints
+import ray 
 from ray import tune
 from ray.air import session
 from ray.air.checkpoint import Checkpoint
