@@ -43,10 +43,6 @@ parser.add_argument("--batch_size", type=int,   default=64,     help="size of th
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--n_cpu",      type=int,   default=8,      help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
-#parser.add_argument("--ngf",        type=int,   default=64,     help="size of feature maps in generator")
-#parser.add_argument("--ndf",        type=int,   default=64,     help="size of feature maps in discriminator")
-#parser.add_argument("--img_size",   type=int,   default=64,     help="size of each image dimension")
-#parser.add_argument("--channels",   type=int,   default=3,      help="number of image channels")
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
@@ -68,7 +64,6 @@ parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for tr
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
-#parser.add_argument("--update_interval",	type=int,  default=50,    help="iters between terminal updates")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
@@ -264,11 +259,6 @@ def train(config):
 				D_trains_since_G_train = 0
 			else:
 				generator_losses.append(generator_losses[-1])
-
-			# print to terminal
-			#if(i % opt.update_interval == 0):
-				#print_update()
-				#print(self.optimizer_D.param_groups[0]['betas'])
 
 			fake_data = []
 
