@@ -51,7 +51,7 @@ parser.add_argument("--fake_loss_min",  type=float, default=0.0002,    help="tar
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--use_raytune",		type=bool,	default=True,	help="Use raytune?")
+parser.add_argument("--use_raytune",		type=bool,	default=False,	help="Use raytune?")
 parser.add_argument("--tune_samples",				type=int,	default=10,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",		type=int,	default=None,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",	type=int,	default=2,	help="How many epochs at most per run with raytune")
@@ -254,7 +254,7 @@ def train(config):
 			# only train generator every n_critic iterations or if the discriminator is overperforming
 			D_overperforming = False
 			if epoch >= 1 or i >= 1:
-				D_overperforming = fake_losses[-1] < opt.fake_loss_min
+				D_overperforming = fake_losses[-1] < config["fake_loss_min"]
 			if(D_trains_since_G_train >= config["n_critic"] or D_overperforming or i == 0):
 				train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
 				D_trains_since_G_train = 0
@@ -409,7 +409,8 @@ if opt.use_raytune:
 		"lr": tune.loguniform(1e-4, 1e-1),
 		"batch_size": tune.choice([4, 16, 64, 256]),
 		"latent_dim": tune.choice([32, 64, 128, 256]),
-		"n_critic": tune.choice([1, 2, 3, 4])
+		"n_critic": tune.choice([1, 2, 3, 4]),
+		"fake_loss_min": tune.loguniform(1e-6, 1e-1),
 	}
 	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
 else:
@@ -419,7 +420,8 @@ else:
 		"lr": opt.lr,
 		"batch_size": opt.batch_size,
 		"latent_dim": opt.latent_dim,
-		"n_critic": opt.n_critic
+		"n_critic": opt.n_critic,
+		"fake_loss_min": opt.fake_loss_min,
 	}
 	train(config)
 
