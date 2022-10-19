@@ -216,12 +216,9 @@ def SDS(A: [Triple], B: [Triple], printing=True):
 				if r in Bx[h] and (h, r, "") not in C:
 					C.append((h, r, ""))
 
-	#calculate unique x and y values in C
-	xC = []
+	#calculate unique y values in C
 	yC = []
 	for (x,y,z) in C:
-		if x not in xC:
-			xC.append(x)
 		if y not in yC:
 			yC.append(y)
 
