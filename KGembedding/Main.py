@@ -40,7 +40,7 @@ from NNs.simpGAN import *
 #tuning implemented
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
+parser.add_argument("--batch_size", type=int,   default=256,     help="size of the batches")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.0002,    help="target minimum fake loss for D")
@@ -51,26 +51,26 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
-parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
-parser.add_argument("--max_concurrent_samples",	type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
+parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="With raytune, no. of triples to generate for validation")
+parser.add_argument("--tune_samples",			type=int,	default=10**1,	help="Total samples taken with raytune")
+parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
 parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 
 # Output options 
-parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
+parser.add_argument("--sample_interval",	type=int,  default=200,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",		type=int,	default=10**4,	help="Number of triples to generate after training")
 opt = parser.parse_args()
 print(opt)
 
@@ -108,10 +108,9 @@ if cuda: device = 'cuda:0'
 
 
 # --- Dataset loading & formatting ---
-os.chdir(inDataDir)
-trainFile = open(trainName, 'r')
-testFile  = open(testName, 'r')
-validFile = open(validName, 'r')
+trainFile = open(path_join(inDataDir, trainName), 'r')
+testFile  = open(path_join(inDataDir, testName), 'r')
+validFile = open(path_join(inDataDir, validName), 'r')
 
 trainData = []
 testData  = []
@@ -129,10 +128,9 @@ relationID = 0
 
 #potentially load generated data
 genDir = path_join(dataDir, "_gen")
-os.chdir(genDir)
 genData = []
 if opt.mode == "test":
-	genFile = open("triples.csv", 'r')
+	genFile = open(path_join(genDir, "triples.csv"), 'r')
 	dataToLoad.append((genFile, genData))
 
 # Each part of the dataset is loaded the same way
@@ -211,7 +209,7 @@ def train(config):
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
 			with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
-				D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(os.path.join(loaded_checkpoint_dir, "checkpoint.pt"))
+				D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"))
 			discriminator.load_state_dict(D_state)
 			optim_disc.load_state_dict(D_optimizer_state)
 			generator.load_state_dict(G_state)
@@ -290,11 +288,11 @@ def train(config):
 		# Ray Tune and can be accessed through `session.get_checkpoint()`
 		# API in future iterations.
 		if opt.mode == "tune" or opt.save_checkpoints:
-			os.makedirs("my_model", exist_ok=True)
+			os.makedirs(path_join(genDir, "my_model"), exist_ok=True)
 			torch.save(
-				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), "my_model/checkpoint.pt"
+				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), path_join(path_join(genDir, "my_model"), "checkpoint.pt")
 			)
-			checkpoint = Checkpoint.from_directory("my_model")
+			checkpoint = Checkpoint.from_directory(path_join(genDir, "my_model"))
 
 			# Calculate SDS score 
 			if opt.mode == "tune":
@@ -437,9 +435,9 @@ if opt.mode == "run":
 
 if opt.mode == "run":
 	# make/overwrite generated files 
-	nodesFile = open("nodes.csv", "w")
-	edgesFile = open("edges.csv", "w")
-	triplesFile = open("triples.csv", "w")
+	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
+	edgesFile = open(path_join(genDir, "edges.csv"), "w")
+	triplesFile = open(path_join(genDir, "triples.csv"), "w")
 
 	# format & save data 
 	#format data as nodes and edges

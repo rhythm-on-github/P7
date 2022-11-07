@@ -1,3 +1,4 @@
+# Deprecated?
 from pykeen.triples import TriplesFactory
 from pykeen.pipeline import pipeline
 #from pykeen.datasets.nations import NATIONS_TRAIN_PATH
