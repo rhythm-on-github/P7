@@ -91,8 +91,8 @@ loss_graphDir = path_join(dataDir, "_loss_graph")
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
 
 trainName = 'train.txt'
-testName  = 'test.txt'
 validName = 'valid.txt'
+testName  = 'test.txt'
 
 # Seed
 seed = torch.Generator().seed()
@@ -109,14 +109,14 @@ if cuda: device = 'cuda:0'
 
 # --- Dataset loading & formatting ---
 trainFile = open(path_join(inDataDir, trainName), 'r')
-testFile  = open(path_join(inDataDir, testName), 'r')
 validFile = open(path_join(inDataDir, validName), 'r')
+testFile  = open(path_join(inDataDir, testName), 'r')
 
 trainData = []
-testData  = []
 validData = []
+testData  = []
 
-dataToLoad = [(trainFile, trainData), (testFile, testData), (validFile, validData)]
+dataToLoad = [(trainFile, trainData), (validFile, validData), (testFile, testData)]
 
 #only used to: 
 # 1. get the number of unique entities and relations, for one-hot encoding 
@@ -159,13 +159,13 @@ entitiesN = len(entities)
 relationsN = len(relations)
 
 trainFile.close()
-testFile.close()
 validFile.close()
+testFile.close()
 
 # make dataset encoders
 trainDataEncoder = Encoder(trainData, entities, entitiesN, relations, relationsN)
-testDataEncoder  = Encoder(testData,  entities, entitiesN, relations, relationsN)
 validDataEncoder = Encoder(validData, entities, entitiesN, relations, relationsN)
+testDataEncoder  = Encoder(testData,  entities, entitiesN, relations, relationsN)
 
 
 
@@ -184,8 +184,8 @@ if cuda:
 def train(config):
 	# make data loaders
 	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
-	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
+	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
 	
 	real_epochs = opt.n_epochs
 	if opt.mode == "tune":
@@ -297,7 +297,7 @@ def train(config):
 			# Calculate SDS score 
 			if opt.mode == "tune":
 				synthData = gen_synth(opt.tune_n_valid_triples, latent_dim=config["latent_dim"], printing=False)
-				(score, _) = SDS(testData, synthData, printing=False)
+				(score, _) = SDS(validData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
 
@@ -392,7 +392,7 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	best_result = results.get_best_result("score", "min")
 	
 	print("Best trial config: {}".format(best_result.config))
-	print("Best trial final testing loss: {}".format(
+	print("Best trial final validation loss: {}".format(
 		best_result.metrics["score"]))
 	
 	#test_best_model(best_result)
@@ -473,10 +473,10 @@ if opt.mode != "tune":
 	(score, results) = (0, [])
 	if opt.mode == "run":
 		#test on newly generated data
-		(score, results) = SDS(validData, syntheticTriples)
+		(score, results) = SDS(testData, syntheticTriples)
 	elif opt.mode == "test":
 		#test on generated data from last run
-		(score, results) = SDS(validData, genData)
+		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
 		(score, results) = SDS(validData, testData)
