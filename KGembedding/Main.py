@@ -52,18 +52,19 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",			type=int,	default=5*10**0,	help="Total samples taken with raytune")
+parser.add_argument("--tune_samples",			type=int,	default=10**0,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
+parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
-parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
-parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
-parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
+#"Booleans"
+parser.add_argument("--load_checkpoint",	type=str,	default="False",	help="Load latest checkpoint before training? (automatically on with raytune)")
+parser.add_argument("--save_checkpoints",	type=str,	default="False",	help="Save checkpoints throughout training? (automatically on with raytune)")
+parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=200,    help="Iters between image samples")
@@ -72,6 +73,23 @@ parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total tex
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",		type=int,	default=10**4,	help="Number of triples to generate after training")
 opt = parser.parse_args()
+
+#convert "Booleans" to actual bools
+if opt.load_checkpoint == "False":
+	opt.load_checkpoint = False
+else:
+	opt.load_checkpoint = True
+
+if opt.save_checkpoints == "False":
+	opt.save_checkpoints = False
+else:
+	opt.save_checkpoints = True
+
+if opt.use_gpu == "False":
+	opt.use_gpu = False
+else:
+	opt.use_gpu = True
+
 print(opt)
 
 
