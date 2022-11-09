@@ -55,7 +55,7 @@ parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="Wit
 parser.add_argument("--tune_samples",			type=int,	default=10**0,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
-parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
+parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
