@@ -414,9 +414,9 @@ if opt.mode == "tune":
 		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		#"l2":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		"lr":			tune.loguniform(1e-4, 1e-1),
-		"batch_size":	tune.choice([4, 16, 64, 256]),
-		"latent_dim":	tune.choice([32, 64, 128, 256]),
-		"n_critic":		tune.choice([1, 2, 3, 4]),
+		"batch_size":	tune.choice([16, 32, 64, 128, 256]),
+		"latent_dim":	tune.choice([32, 64, 128, 256, 512]),
+		"n_critic":		tune.choice([1, 2, 3]),
 		"f_loss_min":	tune.loguniform(1e-6, 1e-1),
 	}
 	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
