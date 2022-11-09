@@ -52,7 +52,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",			type=int,	default=10**1,	help="Total samples taken with raytune")
+parser.add_argument("--tune_samples",			type=int,	default=5*10**0,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
@@ -177,11 +177,17 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 # define generator and discriminator globally so they can be used in other functions aswell
 generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
 discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
-if cuda:
-	generator.to(device)
-	discriminator.to(device)
+
+generator.to(device)
+discriminator.to(device)
+
 
 def train(config):
+	# Find out computing device again, in case it's a worker thread
+	cuda = opt.use_gpu and torch.cuda.is_available()
+	device = 'cpu'
+	if cuda: device = 'cuda:0'
+
 	# make data loaders
 	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
@@ -196,10 +202,6 @@ def train(config):
 	generator	=		Generator(config["latent_dim"], entitiesN, relationsN)
 	discriminator = Discriminator(config["latent_dim"], entitiesN, relationsN)
 
-	if cuda:
-		generator.to(device)
-		discriminator.to(device)
-
 	loss_func = torch.nn.BCELoss()
 	optim_gen =  torch.optim.Adam(generator.parameters(),		lr=config["lr"], betas=(opt.beta1, 0.999))
 	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
@@ -208,12 +210,18 @@ def train(config):
 	if opt.mode == "tune" or opt.load_checkpoint:
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
+			discriminator.to('cpu')
+			generator.to('cpu')
 			with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
-				D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"))
-			discriminator.load_state_dict(D_state)
-			optim_disc.load_state_dict(D_optimizer_state)
-			generator.load_state_dict(G_state)
-			optim_gen.load_state_dict(G_optimizer_state)
+				D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"), map_location=torch.device('cpu'))
+				discriminator.load_state_dict(D_state)
+				optim_disc.load_state_dict(D_optimizer_state)
+				generator.load_state_dict(G_state)
+				optim_gen.load_state_dict(G_optimizer_state)
+	
+	discriminator.to(device)
+	generator.to(device)
+
 
 	epochsDone = 0
 
@@ -290,8 +298,11 @@ def train(config):
 		if opt.mode == "tune" or opt.save_checkpoints:
 			os.makedirs(path_join(genDir, "my_model"), exist_ok=True)
 			torch.save(
-				(discriminator.state_dict(), generator.state_dict(), optim_disc.state_dict(), optim_gen.state_dict()), path_join(path_join(genDir, "my_model"), "checkpoint.pt")
+				(discriminator.to('cpu').state_dict(), generator.to('cpu').state_dict(), optim_disc.state_dict(), optim_gen.state_dict()),
+				path_join(path_join(genDir, "my_model"), "checkpoint.pt")
 			)
+			discriminator.to(device)
+			generator.to(device)
 			checkpoint = Checkpoint.from_directory(path_join(genDir, "my_model"))
 
 			# Calculate SDS score 
