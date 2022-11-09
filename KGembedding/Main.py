@@ -201,11 +201,6 @@ discriminator.to(device)
 
 
 def train(config):
-	# Find out computing device again, in case it's a worker thread
-	cuda = opt.use_gpu and torch.cuda.is_available()
-	device = 'cpu'
-	if cuda: device = 'cuda:0'
-
 	# make data loaders
 	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
@@ -237,6 +232,13 @@ def train(config):
 				generator.load_state_dict(G_state)
 				optim_gen.load_state_dict(G_optimizer_state)
 	
+				
+	# Find out computing device again, in case it's a worker thread
+	cuda = opt.use_gpu and torch.cuda.is_available()
+	device = 'cpu'
+	if cuda: device = 'cuda:0'
+	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
 	discriminator.to(device)
 	generator.to(device)
 
