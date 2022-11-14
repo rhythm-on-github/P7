@@ -52,13 +52,13 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",			type=int,	default=10**0,	help="Total samples taken with raytune")
+parser.add_argument("--tune_samples",			type=int,	default=5*10**0,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
@@ -327,7 +327,7 @@ def train(config):
 
 			# Calculate SDS score 
 			if opt.mode == "tune":
-				synthData = gen_synth(opt.tune_n_valid_triples, latent_dim=config["latent_dim"], printing=False)
+				synthData = gen_synth(opt.tune_n_valid_triples, printing=False)
 				(score, _) = SDS(validData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
@@ -355,7 +355,7 @@ for key in relations.keys():
 	value = relations[key]
 	relationsRev[value] = key
 
-def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printing=True):
+def gen_synth(num_triples = opt.out_n_triples, printing=True):
 	# When raytune is used, the actual latent dim may differ from option
 	real_latent_dim = generator.model[0].in_features
 
@@ -397,6 +397,28 @@ def gen_synth(num_triples = opt.out_n_triples, latent_dim=opt.latent_dim, printi
 
 
 
+# --- model testing ---
+def test_model(result):
+	generator =	Generator(result.config["latent_dim"], entitiesN, relationsN)
+	
+	#load model
+	generator.to('cpu')
+	loaded_checkpoint_dir = path_join(genDir, "my_model")
+	_, G_state, _, _ = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"), map_location=torch.device('cpu'))
+	generator.load_state_dict(G_state)
+	generator.to(device)
+
+	#generate new triples
+	synth_triples = gen_synth();
+
+	#calculate metrics
+	(SDSscore, _) = SDS(synth_triples, testData)
+	print("SDS score: " + str(SDSscore))
+
+
+
+
+
 # --- hyperparameter tuning ---
 def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	scheduler = ASHAScheduler(
@@ -426,7 +448,7 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	print("Best trial final validation loss: {}".format(
 		best_result.metrics["score"]))
 	
-	#test_best_model(best_result)
+	test_model(best_result)
 
 #potentially run raytune, otherwise just train once
 if opt.mode == "tune":
@@ -454,7 +476,7 @@ elif opt.mode == "run":
 
 
 
-# generate final synthetic data
+# generate final synthetic data for run mode
 syntheticTriples = []
 if opt.mode == "run":
 	syntheticTriples = gen_synth()
