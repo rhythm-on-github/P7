@@ -15,13 +15,15 @@ import pathlib
 import datetime 
 from datetime import datetime
 from tqdm import tqdm
+import json
+import pandas as pd
 
 #ray imports can be outcommented if not using raytune / checkpoints
-import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+#import ray 
+#from ray import tune
+#from ray.air import session
+#from ray.air.checkpoint import Checkpoint
+#from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -40,7 +42,7 @@ from NNs.simpGAN import *
 #tuning implemented
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--batch_size", type=int,   default=256,     help="size of the batches")
+parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
 parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.0002,    help="target minimum fake loss for D")
@@ -51,15 +53,18 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
-parser.add_argument("--tune_n_valid_triples",	type=int,	default=10**3,	help="With raytune, no. of triples to generate for validation")
-parser.add_argument("--tune_samples",			type=int,	default=5*10**0,	help="Total samples taken with raytune")
-parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
+parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
+parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
+parser.add_argument("--max_concurrent_samples",	type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
-parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
+parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
+parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
+parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--load_checkpoint",	type=str,	default="False",	help="Load latest checkpoint before training? (automatically on with raytune)")
@@ -67,11 +72,12 @@ parser.add_argument("--save_checkpoints",	type=str,	default="False",	help="Save 
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
-parser.add_argument("--sample_interval",	type=int,  default=200,    help="Iters between image samples")
+parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=10**4,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
+
 opt = parser.parse_args()
 
 #convert "Booleans" to actual bools
@@ -150,6 +156,13 @@ genData = []
 if opt.mode == "test":
 	genFile = open(path_join(genDir, "triples.csv"), 'r')
 	dataToLoad.append((genFile, genData))
+	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
+	genTestData = genReader
+	validReader = pd.read_csv(path_join(genDir, validName), sep='\t')
+	validTestData = validReader
+	metadataDir = path_join(dataDir, "metadata")
+	with open(path_join(metadataDir, 'metadatafile.json')) as f:
+		my_metadata_dict = json.load(f)
 
 # Each part of the dataset is loaded the same way
 for (file, data) in dataToLoad:
@@ -198,7 +211,6 @@ discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
 
 generator.to(device)
 discriminator.to(device)
-
 
 def train(config):
 	# make data loaders
@@ -529,7 +541,10 @@ if opt.mode != "tune":
 		(score, results) = SDS(testData, syntheticTriples)
 	elif opt.mode == "test":
 		#test on generated data from last run
-		(score, results) = SDS(testData, genData)
+		print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
+		print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
+		print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
+		(score, results) = SDS(validData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
 		(score, results) = SDS(validData, testData)

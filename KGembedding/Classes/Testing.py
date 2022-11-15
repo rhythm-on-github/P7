@@ -3,7 +3,11 @@ from tqdm import tqdm
 
 from .Triple import *
 
+from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
+from sdmetrics.reports.single_table import QualityReport
+
 """
+--- SDS ---
  Idea: Use statistical analysis, e.g. P((x,isA,y) | (x,isA,z))
 Types of things to analyze:
 	1: P((x,y,a) | (x,y,b))
@@ -262,3 +266,27 @@ def SDS(A: [Triple], B: [Triple], printing=True):
 	score = score/len(results)
 
 	return (score, results)
+
+
+def CategoricalCAPTest(real_data, synthetic_data): 
+	return CategoricalCAP.compute(
+				real_data=real_data, 
+				synthetic_data=synthetic_data, 
+				key_fields=['node1', 'node2'], 
+				sensitive_fields=['relation']
+				)
+
+def CategoricalZeroCAPTest(real_data, synthetic_data):
+	return CategoricalZeroCAP.compute(
+				real_data=real_data, 
+				synthetic_data=synthetic_data, 
+				key_fields=['node1', 'node2'], 
+				sensitive_fields=['relation']
+			   )
+
+def NewRowSynthesisTest(real_data, synthetic_data, my_metadata_dict):
+	return NewRowSynthesis.compute(
+				real_data=real_data,
+				synthetic_data=synthetic_data,
+				metadata=my_metadata_dict
+				)
