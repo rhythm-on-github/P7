@@ -62,9 +62,6 @@ parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus t
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
-parser.add_argument("--load_checkpoint",	type=bool,	default=False,	help="Load latest checkpoint before training? (automatically on with raytune)")
-parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save checkpoints throughout training? (automatically on with raytune)")
-parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
@@ -156,7 +153,7 @@ if opt.mode == "test":
 	dataToLoad.append((genFile, genData))
 	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
 	genTestData = genReader
-	validReader = pd.read_csv(path_join(genDir, validName), sep='\t')
+	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
 	validTestData = validReader
 	metadataDir = path_join(dataDir, "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
@@ -547,6 +544,7 @@ if opt.mode != "tune":
 		print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
 		print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
 		print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
+		ProduceQualityReport(validTestData, genTestData, my_metadata_dict)
 		(score, results) = SDS(validData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data

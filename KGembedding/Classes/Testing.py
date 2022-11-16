@@ -5,6 +5,8 @@ from .Triple import *
 
 from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
 from sdmetrics.reports.single_table import QualityReport
+import warnings
+
 
 """
 --- SDS ---
@@ -284,9 +286,14 @@ def CategoricalZeroCAPTest(real_data, synthetic_data):
 				sensitive_fields=['relation']
 			   )
 
-def NewRowSynthesisTest(real_data, synthetic_data, my_metadata_dict):
+def NewRowSynthesisTest(real_data, synthetic_data, metadata_dict):
 	return NewRowSynthesis.compute(
 				real_data=real_data,
 				synthetic_data=synthetic_data,
-				metadata=my_metadata_dict
+				metadata=metadata_dict
 				)
+
+def ProduceQualityReport(real_data, synthetic_data, metadata_dict):
+	warnings.filterwarnings('ignore')
+	report = QualityReport()
+	report.generate(real_data, synthetic_data, metadata_dict)
