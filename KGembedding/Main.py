@@ -465,7 +465,6 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 		best_result.metrics["score"]))
 	
 	#rerun best model
-	ray.shutdown()
 	test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
