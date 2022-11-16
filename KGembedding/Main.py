@@ -155,7 +155,7 @@ if opt.mode == "test":
 	genTestData = genReader
 	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
 	validTestData = validReader
-	metadataDir = path_join(dataDir, "metadata")
+	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
 

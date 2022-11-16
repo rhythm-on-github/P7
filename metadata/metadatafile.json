@@ -1,0 +1,16 @@
+{
+"fields": {
+	  "node1": {
+	  	"type": "categorical",
+	  	"subtype": "string"
+  	},
+		"relation": {
+			"type": "categorical",
+			"subtype": "string"
+		},
+	  "node2": {
+		  "type": "categorical",
+		  "subtype": "string"
+	  }
+}
+}
