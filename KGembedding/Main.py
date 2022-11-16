@@ -17,6 +17,7 @@ from datetime import datetime
 from tqdm import tqdm
 import json
 import pandas as pd
+from math import floor
 
 #ray imports can be outcommented if not using raytune / checkpoints
 import ray 
@@ -58,6 +59,7 @@ parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
+parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
@@ -214,11 +216,20 @@ generator.to(device)
 discriminator.to(device)
 
 
-def train(config, train_override_printing=False):
+def train(config, tune_done=False):
 	# make data loaders
-	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
+
+	#For tuning, only use a subset of the data
+	tune_subset_size = opt.tune_subset_size
+	if (opt.mode != "tune") or tune_done:
+		tune_subset_size = 1.0
+	subset_total_count = floor(len(trainData)*tune_subset_size)
+	trainSubset, _ = torch.utils.data.random_split(trainDataEncoder, [subset_total_count, len(trainData)-subset_total_count])
+	trainDataloader = torch.utils.data.DataLoader(trainSubset, batch_size=config["batch_size"], shuffle=True)
+	print("Data subset size: " + str(len(trainDataloader.dataset)))
+
 	
 	real_epochs = opt.n_epochs
 	if opt.mode == "tune":
@@ -281,14 +292,14 @@ def train(config, train_override_printing=False):
 	
 	D_trains_since_G_train = 0
 	epochs = range(epochsDone, real_epochs)
-	if opt.mode != "tune" or train_override_printing:
+	if opt.mode != "tune" or tune_done:
 		epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
 		print("epochs: " + str(epochs))
 	for epoch in epochs:
 		# run an epoch 
 		print("")
 		dataLoader = enumerate(trainDataloader)
-		if opt.mode != "tune" or train_override_printing:
+		if opt.mode != "tune" or tune_done:
 			dataLoader = tqdm(dataLoader, position=0, leave=True, total=iters_per_epoch, ncols=columns)
 		for i, batch in dataLoader:
 			#run a batch
@@ -323,7 +334,7 @@ def train(config, train_override_printing=False):
 				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 		# save graph after each epoch
-		if opt.mode != "tune" or train_override_printing:
+		if opt.mode != "tune" or tune_done:
 			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 
@@ -348,7 +359,7 @@ def train(config, train_override_printing=False):
 	
 
 	trainEnd = datetime.now()
-	if real_epochs > 0 and (opt.mode != "tune" or train_override_printing):
+	if real_epochs > 0 and (opt.mode != "tune" or tune_done):
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
 		tpsTrain = (len(trainData)*real_epochs)/trainTime
@@ -421,7 +432,7 @@ def test_best_model(result):
 	#rerun best model
 	opt.load_checkpoint = False
 	opt.save_checkpoints = False
-	train(config, train_override_printing=True)
+	train(config, tune_done=True)
 
 	#generate new triples
 	synth_triples = gen_synth();

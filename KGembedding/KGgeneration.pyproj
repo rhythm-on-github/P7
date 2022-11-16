@@ -44,7 +44,6 @@
     <Compile Include="Classes\Triple.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="KGembedding.py" />
     <Compile Include="Main.py">
       <SubType>Code</SubType>
     </Compile>
