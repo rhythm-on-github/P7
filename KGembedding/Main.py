@@ -57,7 +57,7 @@ parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With
 parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
-parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
+parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
@@ -74,6 +74,7 @@ parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total tex
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
 
@@ -92,6 +93,11 @@ if opt.use_gpu == "False":
 	opt.use_gpu = False
 else:
 	opt.use_gpu = True
+
+if opt.use_sdmetrics == "False":
+	opt.use_sdmetrics = False
+else:
+	opt.use_sdmetrics = True
 
 print(opt)
 
@@ -541,10 +547,11 @@ if opt.mode != "tune":
 		(score, results) = SDS(testData, syntheticTriples)
 	elif opt.mode == "test":
 		#test on generated data from last run
-		print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
-		print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
-		print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
-		ProduceQualityReport(validTestData, genTestData, my_metadata_dict)
+		if opt.use_sdmetrics:
+			print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
+			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
+			ProduceQualityReport(validTestData, genTestData, my_metadata_dict)
 		(score, results) = SDS(validData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data

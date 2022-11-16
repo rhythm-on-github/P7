@@ -1,11 +1,12 @@
 import torch
 from tqdm import tqdm
+import warnings
 
 from .Triple import *
 
-from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
-from sdmetrics.reports.single_table import QualityReport
-import warnings
+# sdmetrics can be outcommented if not using it
+#from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
+#from sdmetrics.reports.single_table import QualityReport
 
 
 """
