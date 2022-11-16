@@ -19,11 +19,11 @@ import json
 import pandas as pd
 
 #ray imports can be outcommented if not using raytune / checkpoints
-#import ray 
-#from ray import tune
-#from ray.air import session
-#from ray.air.checkpoint import Checkpoint
-#from ray.tune.schedulers import ASHAScheduler
+import ray 
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -55,7 +55,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hype
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
 parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
-parser.add_argument("--max_concurrent_samples",	type=int,	default=4,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
+parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=0,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 
@@ -67,8 +67,8 @@ parser.add_argument("--save_checkpoints",	type=bool,	default=False,	help="Save c
 parser.add_argument("--use_gpu",			type=bool,	default=True,	help="use GPU for training (when without raytune)? (cuda)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
-parser.add_argument("--load_checkpoint",	type=str,	default="False",	help="Load latest checkpoint before training? (automatically on with raytune)")
-parser.add_argument("--save_checkpoints",	type=str,	default="False",	help="Save checkpoints throughout training? (automatically on with raytune)")
+parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
+parser.add_argument("--save_checkpoints",	type=str,	default="True",	help="Save checkpoints throughout training? (automatically off without raytune)")
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
@@ -97,8 +97,6 @@ else:
 	opt.use_gpu = True
 
 print(opt)
-
-
 
 
 # --- setup ---
@@ -212,7 +210,8 @@ discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
 generator.to(device)
 discriminator.to(device)
 
-def train(config):
+
+def train(config, train_override_printing=False):
 	# make data loaders
 	trainDataloader = torch.utils.data.DataLoader(trainDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
@@ -232,7 +231,7 @@ def train(config):
 	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
 
 	# Checkpoint restoring
-	if opt.mode == "tune" or opt.load_checkpoint:
+	if opt.mode == "tune" and opt.load_checkpoint:
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
 			discriminator.to('cpu')
@@ -279,13 +278,14 @@ def train(config):
 	
 	D_trains_since_G_train = 0
 	epochs = range(epochsDone, real_epochs)
-	if opt.mode != "tune":
-			epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
+	if opt.mode != "tune" or train_override_printing:
+		epochs = tqdm(epochs, position=0, leave=False, ncols=columns)
+		print("epochs: " + str(epochs))
 	for epoch in epochs:
 		# run an epoch 
 		print("")
 		dataLoader = enumerate(trainDataloader)
-		if opt.mode != "tune":
+		if opt.mode != "tune" or train_override_printing:
 			dataLoader = tqdm(dataLoader, position=0, leave=True, total=iters_per_epoch, ncols=columns)
 		for i, batch in dataLoader:
 			#run a batch
@@ -320,14 +320,14 @@ def train(config):
 				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 		# save graph after each epoch
-		if opt.mode != "tune":
+		if opt.mode != "tune" or train_override_printing:
 			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 
 		# Here we save a checkpoint. It is automatically registered with
 		# Ray Tune and can be accessed through `session.get_checkpoint()`
 		# API in future iterations.
-		if opt.mode == "tune" or opt.save_checkpoints:
+		if opt.mode == "tune" and opt.save_checkpoints:
 			os.makedirs(path_join(genDir, "my_model"), exist_ok=True)
 			torch.save(
 				(discriminator.to('cpu').state_dict(), generator.to('cpu').state_dict(), optim_disc.state_dict(), optim_gen.state_dict()),
@@ -345,7 +345,7 @@ def train(config):
 	
 
 	trainEnd = datetime.now()
-	if real_epochs > 0 and opt.mode != "tune":
+	if real_epochs > 0 and (opt.mode != "tune" or train_override_printing):
 		trainTime = (trainEnd - trainStart).total_seconds()
 		print("Training time: " + "{:.0f}".format(trainTime) + " seconds")
 		tpsTrain = (len(trainData)*real_epochs)/trainTime
@@ -410,15 +410,15 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 
 
 # --- model testing ---
-def test_model(result):
-	generator =	Generator(result.config["latent_dim"], entitiesN, relationsN)
-	
-	#load model
-	generator.to('cpu')
-	loaded_checkpoint_dir = path_join(genDir, "my_model")
-	_, G_state, _, _ = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"), map_location=torch.device('cpu'))
-	generator.load_state_dict(G_state)
-	generator.to(device)
+def test_best_model(result):
+	config = result.config
+	print("\nRerunning best model")
+	print(config)
+
+	#rerun best model
+	opt.load_checkpoint = False
+	opt.save_checkpoints = False
+	train(config, train_override_printing=True)
 
 	#generate new triples
 	synth_triples = gen_synth();
@@ -436,7 +436,8 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	scheduler = ASHAScheduler(
 		max_t=max_num_epochs,
 		grace_period=1,
-		reduction_factor=2)
+		reduction_factor=2
+	)
 
 	tuner = tune.Tuner(
 		tune.with_resources(
@@ -460,7 +461,9 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	print("Best trial final validation loss: {}".format(
 		best_result.metrics["score"]))
 	
-	test_model(best_result)
+	#rerun best model
+	ray.shutdown()
+	test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
 if opt.mode == "tune":
