@@ -113,6 +113,8 @@ workDir  = pathlib.Path().resolve()
 dataDir  = path_join(workDir.parent.resolve(), 'datasets')
 inDataDir = path_join(dataDir, opt.dataset)
 loss_graphDir = path_join(dataDir, "_loss_graph")
+if not os.path.exists(loss_graphDir):
+	os.makedirs(loss_graphDir)
 
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
@@ -155,6 +157,8 @@ relationID = 0
 
 #potentially load generated data
 genDir = path_join(dataDir, "_gen")
+if not os.path.exists(genDir):
+	os.makedirs(genDir)
 genData = []
 if opt.mode == "test":
 	genFile = open(path_join(genDir, "triples.csv"), 'r')
