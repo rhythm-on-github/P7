@@ -9,7 +9,7 @@
 ```
 
 
-A knowledge graph generator
+A knowledge graph generator with a plethora of options
 
 <!-- toc -->
 
@@ -59,6 +59,14 @@ python Main.py --mode [mode]
 ```
 
 where [mode] is one of the modes listed above
+
+To change the default dataset change default to another dataset in same folder
+
+```
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
+```
+
+to change hyperparemeters ...
 
 ## Paper
 
