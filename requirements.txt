@@ -1,0 +1,6 @@
+ray==2.1.0
+"ray[tune]"==2.1.0
+torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+tqdm
+pandas
+sdmetricss
