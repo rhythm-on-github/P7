@@ -132,8 +132,23 @@ cuda = opt.use_gpu and torch.cuda.is_available()
 device = 'cpu'
 if cuda: device = 'cuda:0'
 
+# Search space settings
+# Learning rate
+lr_min = 1e-4
+lr_max = 1e-1
 
+# Batch size
+batch_size = [16, 32, 64, 128, 256]
 
+# Latent dimension
+latent_dim = [32, 64, 128, 256, 512]
+
+# N_critic
+n_critic = [1, 2, 3]
+
+# F_loss
+f_loss_min_min = 1e-6
+f_loss_min_max = 1e-1
 
 
 # --- Dataset loading & formatting ---
@@ -487,11 +502,11 @@ if opt.mode == "tune":
 	config = {
 		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
 		#"l2":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr":			tune.loguniform(1e-4, 1e-1),
-		"batch_size":	tune.choice([16, 32, 64, 128, 256]),
-		"latent_dim":	tune.choice([32, 64, 128, 256, 512]),
-		"n_critic":		tune.choice([1, 2, 3]),
-		"f_loss_min":	tune.loguniform(1e-6, 1e-1),
+		"lr":			tune.loguniform(lr_min, lr_max),
+		"batch_size":	tune.choice(batch_size),
+		"latent_dim":	tune.choice(latent_dim),
+		"n_critic":		tune.choice(n_critic),
+		"f_loss_min":	tune.loguniform(f_loss_min_min, f_loss_min_max),
 	}
 	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
 elif opt.mode == "run":
@@ -503,7 +518,7 @@ elif opt.mode == "run":
 		"latent_dim":	opt.latent_dim,
 		"n_critic":		opt.n_critic,
 		"f_loss_min":	opt.f_loss_min,
-	}
+	}	
 	train(config)
 
 
