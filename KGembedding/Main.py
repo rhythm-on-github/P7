@@ -63,7 +63,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
@@ -338,7 +338,7 @@ def train(config, tune_done=False):
 				saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 		# save graph after each epoch
-		if opt.mode != "tune" or tune_done:
+		if opt.mode != "tune":
 			saveGraph(graphDirAndName, generator_losses, discriminator_losses)
 
 
