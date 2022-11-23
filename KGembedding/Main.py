@@ -139,16 +139,11 @@ if cuda: device = 'cuda:0'
 tune_lr_min = 1e-4
 tune_lr_max = 1e-1
 
-# Batch size
 tune_batch_sizes = [16, 32, 64, 128, 256]
-
-# Latent dimension
 tune_latent_dims = [32, 64, 128, 256, 512]
 
-# N_critic
 tune_n_critics = [1, 2, 3]
 
-# F_loss
 tune_f_loss_min_min = 1e-6
 tune_f_loss_min_max = 1e-1
 
