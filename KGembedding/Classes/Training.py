@@ -7,7 +7,11 @@ def train_discriminator(opt, Tensor, data, genData, device, discriminator, gener
 	optim_disc.zero_grad()
 
 	# When raytune is used, the actual latent dim may differ from option
-	real_latent_dim = generator.model[0].in_features
+	real_latent_dim = 0
+	if isinstance(generator.model[0], torch.nn.ConvTranspose1d):
+		real_latent_dim = generator.model[0].in_channels
+	else:
+		real_latent_dim = generator.model[0].in_features
 
 	# Configure input
 	real_data = Variable(data.type(Tensor))

@@ -37,7 +37,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.simpGAN import *
+from NNs.convGAN3 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -62,7 +62,7 @@ parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus t
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
@@ -206,6 +206,10 @@ for (file, data) in dataToLoad:
 		if t not in entities:
 			entities[t] = entityID
 			entityID += 1
+
+print("")
+print("Entities loaded:  " + str(len(entities)))
+print("Relations loaded: " + str(len(relations)))
 
 entitiesN = len(entities)
 relationsN = len(relations)
@@ -401,7 +405,11 @@ for key in relations.keys():
 
 def gen_synth(num_triples = opt.out_n_triples, printing=True):
 	# When raytune is used, the actual latent dim may differ from option
-	real_latent_dim = generator.model[0].in_features
+	real_latent_dim = 0
+	if isinstance(generator.model[0], torch.nn.ConvTranspose1d):
+		real_latent_dim = generator.model[0].in_channels
+	else:
+		real_latent_dim = generator.model[0].in_features
 
 	syntheticTriples = []
 

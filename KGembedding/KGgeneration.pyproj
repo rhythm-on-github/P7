@@ -47,10 +47,13 @@
     <Compile Include="Main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="NNs\newGAN.py">
+    <Compile Include="NNs\convGAN3.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="NNs\simpGAN.py">
+    <Compile Include="NNs\newGAN2.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="NNs\simpGAN1.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
