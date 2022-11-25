@@ -47,6 +47,9 @@
     <Compile Include="Main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="NNs\newGAN.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="NNs\simpGAN.py">
       <SubType>Code</SubType>
     </Compile>

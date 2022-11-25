@@ -17,7 +17,7 @@ from datetime import datetime
 from tqdm import tqdm
 import json
 import pandas as pd
-from math import floor
+from math import floor, ceil
 
 #ray imports can be outcommented if not using raytune / checkpoints
 import ray 
@@ -45,8 +45,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
 parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
 parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
-parser.add_argument("--n_critic",   type=int,   default=3,      help="max. number of training steps for discriminator per iter")
-parser.add_argument("--f_loss_min", type=float, default=0.0002,    help="target minimum fake loss for D")
+parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
+parser.add_argument("--f_loss_min", type=float, default=0.02,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
 parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
 #tuning not implemented
@@ -54,7 +54,7 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
-parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation")
+parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
 parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
@@ -62,8 +62,8 @@ parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus t
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
@@ -71,11 +71,11 @@ parser.add_argument("--save_checkpoints",	type=str,	default="True",	help="Save c
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
-parser.add_argument("--sample_interval",	type=int,  default=50,    help="Iters between image samples")
+parser.add_argument("--sample_interval",	type=int,  default=500,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
@@ -406,19 +406,22 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 	syntheticTriples = []
 
 	columns = opt.tqdm_columns
-	iters = range(num_triples)
+	iters = range(ceil(num_triples/opt.batch_size))
 	if printing:
 		iters = tqdm(iters, ncols=columns, desc="gen")
 	for i in iters:
-		z = Variable(Tensor(np.random.normal(0, 1, (real_latent_dim,))))
+		z = Variable(Tensor(np.random.normal(0, 1, (opt.batch_size, real_latent_dim,))))
 
 		start = datetime.now()
 
-		tripleEnc = generator(z)
+		triplesEnc = generator(z)
 
 		mid = datetime.now()
 
-		triple = decode(tripleEnc, entitiesRev, entitiesN, relationsRev, relationsN)
+		triples = []
+		for tE in triplesEnc:
+			triple = decode(tE, entitiesRev, entitiesN, relationsRev, relationsN)
+			triples.append(triple)
 
 		end = datetime.now()
 		time1 = (mid - start).total_seconds()
@@ -426,7 +429,8 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 		if printing:
 			print(" - times: " + "{:.2f}".format(time1*1000) + "ms gen / " + "{:.2f}".format(time2*1000) + "ms decode", end='\r')
 
-		syntheticTriples.append(triple)
+		for t in triples:
+			syntheticTriples.append(t)
 	
 	genEnd = datetime.now()
 	if printing:
