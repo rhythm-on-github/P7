@@ -77,6 +77,10 @@ You can change the default dataset(and much more!), by changing the string in de
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 ```
 
+If you do not want the nations dataset or if you and/or github is offline, the download can be disabled with the following options.
+```python
+opt.dataset_download = False
+```
 
 You can also change the hyperparameters search space and and run modes parameters in Main.py
 ```python
