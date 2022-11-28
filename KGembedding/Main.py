@@ -18,6 +18,7 @@ from tqdm import tqdm
 import json
 import pandas as pd
 from math import floor, ceil
+import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
 import ray 
@@ -117,6 +118,24 @@ inDataDir = path_join(dataDir, opt.dataset)
 loss_graphDir = path_join(dataDir, "_loss_graph")
 if not os.path.exists(loss_graphDir):
 	os.makedirs(loss_graphDir)
+
+# Downloads nations dataset
+nationsDatasetDir = path_join(dataDir, 'nations')
+if not os.path.exists(nationsDatasetDir):
+	os.makedirs(nationsDatasetDir)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/test.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'test.txt'), 'wb').write(r.content)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/train.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'train.txt'), 'wb').write(r.content)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/valid.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'valid.txt'), 'wb').write(r.content)
+
 
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
