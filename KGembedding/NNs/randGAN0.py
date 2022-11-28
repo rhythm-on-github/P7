@@ -28,7 +28,7 @@ class Generator(nn.Module):
         
             enc = torch.cat((hEnc, rEnc, tEnc), 1)
             enc = torch.squeeze(enc, dim=0)
-            enc = enc.type(torch.cuda.FloatTensor)
+            enc = enc.type(torch.FloatTensor)
             tripleEncList.append(enc)
 
         tripleEnc = torch.stack(tripleEncList)

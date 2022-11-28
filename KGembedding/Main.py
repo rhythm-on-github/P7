@@ -20,11 +20,11 @@ import pandas as pd
 from math import floor, ceil
 
 #ray imports can be outcommented if not using raytune / checkpoints
-import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+# import ray 
+# from ray import tune
+# from ray.air import session
+# from ray.air.checkpoint import Checkpoint
+# from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -37,7 +37,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.simpGAN1 import *
+from NNs.randGAN0 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -170,9 +170,9 @@ if opt.mode == "test":
 	genFile = open(path_join(genDir, "triples.csv"), 'r')
 	dataToLoad.append((genFile, genData))
 	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
-	genTestData = genReader
-	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
-	validTestData = validReader
+	SDGenData = genReader
+	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
+	SDTestData = testReader
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
@@ -580,11 +580,11 @@ if opt.mode != "tune":
 	elif opt.mode == "test":
 		#test on generated data from last run
 		if opt.use_sdmetrics:
-			print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
-			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
-			print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
-			ProduceQualityReport(validTestData, genTestData, my_metadata_dict)
-		(score, results) = SDS(validData, genData)
+			print("CategoricalCAP:" + str(CategoricalCAPTest(SDTestData, SDGenData)))
+			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(SDTestData, SDGenData)))
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
+			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
+		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
 		(score, results) = SDS(validData, testData)
