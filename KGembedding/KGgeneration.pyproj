@@ -53,6 +53,9 @@
     <Compile Include="NNs\newGAN2.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="NNs\randGAN0.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="NNs\simpGAN1.py">
       <SubType>Code</SubType>
     </Compile>

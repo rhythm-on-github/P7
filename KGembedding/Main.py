@@ -37,7 +37,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.convGAN3 import *
+from NNs.simpGAN1 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -48,7 +48,7 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.02,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=5,   help="number of epochs of training")
 #tuning not implemented
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")

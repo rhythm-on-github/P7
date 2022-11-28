@@ -2,19 +2,20 @@ import torch.nn as nn
 import torch
 
 class Generator(nn.Module):
-    """A very simple GAN generator"""
+    """A GAN generator with convolutions"""
     def __init__(self, zSize:int, entitiesN:int, relationsN:int):
         super(Generator, self).__init__()
         self.flatten = nn.Flatten()
         self.model = nn.Sequential(
-            # effectively a dense layer, while converting it from 1-wide with zSize channels to 512-wide 1ch
-            nn.ConvTranspose1d(zSize, 1, 512, 1, 0, bias=False),
+            # state size: 1-wide, zSize channels
+            nn.ConvTranspose1d(zSize, 20, 512, 1, 0, bias=False),
+            # state size: 512-wide, 10ch
             nn.ReLU(),
-            # "normal" transpose convolution
-            nn.ConvTranspose1d(1, 1, 16, 2, 7, bias=False), #padding = (kernel_size/2) - 1
+            nn.ConvTranspose1d(20, 10, 32, 2, 15, bias=False), #padding = (kernel_size/2) - 1
+            # state size: 1024-wide, 10ch
             nn.ReLU(),
-            # another dense layer, this time from 1024-wide 1ch to 1-wide n-channel
-            nn.Conv1d(1, entitiesN + relationsN + entitiesN, 1024, 1, 0, bias=False),
+            nn.Conv1d(10, entitiesN + relationsN + entitiesN, 1024, 1, 0, bias=False),
+            # state size: 1-wide, entN+relN+entN channels
             nn.BatchNorm1d(entitiesN + relationsN + entitiesN),
             nn.Tanh()
         )
@@ -34,7 +35,6 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.flatten = nn.Flatten()
         self.model = nn.Sequential(
-            # nn.Conv1d(entitiesN + relationsN + entitiesN, 256, 4, 1, 0, bias=False),
             nn.Linear(entitiesN + relationsN + entitiesN, 256),
             nn.ReLU(),
             nn.Linear(256, 1),
@@ -43,5 +43,5 @@ class Discriminator(nn.Module):
 
     def forward(self, z):
         # takes a one-hot encoded triple and gives a binary classifications (real/synthetic)
-        tripleEnc = self.model(z)
-        return tripleEnc
+        prediction = self.model(z)
+        return prediction
