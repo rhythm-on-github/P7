@@ -83,6 +83,9 @@ opt = parser.parse_args()
 opt.load_checkpoint = True
 opt.save_checkpoints = True
 
+#option for nations download (in case something is offline)
+opt.dataset_download = True
+
 #convert "Booleans" to actual bools
 if opt.use_gpu == "False":
 	opt.use_gpu = False
@@ -113,7 +116,7 @@ if not os.path.exists(loss_graphDir):
 
 # Downloads nations dataset
 nationsDatasetDir = path_join(dataDir, 'nations')
-if not os.path.exists(nationsDatasetDir):
+if not os.path.exists(nationsDatasetDir) and opt.dataset_download == True:
 	os.makedirs(nationsDatasetDir)
 
 	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/test.txt'
