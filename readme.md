@@ -21,12 +21,12 @@ A knowledge graph generator with a plethora of options
     - [Settings](#settings)
 - [Paper](#paper)
 - [The Team](#the-team)
+- [Datasets](#datasets)
 - [Licence](#licence)
 
 <!-- tocstop -->
 
 ## Features
-
 Multiple modes to run the dataset
    - generate - simply generates triples
    - run - trains a model, generates and runs SDS
@@ -94,12 +94,13 @@ if opt.mode == "tune":
 ```
 
 ## Paper
-
 The paper can be found [here](https://www.overleaf.com/project/6332b13b23a385a2ea10c941) !!change link when its done!!
 
 ## The Team
-
 We are a group of Computer Science students from 7th semester, who were tasked at creating "secure, scalable and usable systems".
+
+## Datasets
+The Nations dataset can be found at [ZhenfengLei/KGDatasets](https://github.com/ZhenfengLei/KGDatasets)
 
 ## Licence
 Copyright 2022 Anders Martin Hansen, Frederik Stær, Frederik Marinus Trudslev, Silas Oliver Torup Bachmann
