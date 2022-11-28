@@ -63,7 +63,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
@@ -77,6 +77,10 @@ parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
+
+#checkpoint options used and changed later
+opt.load_checkpoint = True
+opt.save_checkpoints = True
 
 #convert "Booleans" to actual bools
 if opt.use_gpu == "False":
