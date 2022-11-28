@@ -66,8 +66,6 @@ parser.add_argument("--dataset",			type=str,	default="nations",	help="Which data
 parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
-parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
-parser.add_argument("--save_checkpoints",	type=str,	default="True",	help="Save checkpoints throughout training? (automatically off without raytune)")
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
@@ -81,16 +79,6 @@ parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdm
 opt = parser.parse_args()
 
 #convert "Booleans" to actual bools
-if opt.load_checkpoint == "False":
-	opt.load_checkpoint = False
-else:
-	opt.load_checkpoint = True
-
-if opt.save_checkpoints == "False":
-	opt.save_checkpoints = False
-else:
-	opt.save_checkpoints = True
-
 if opt.use_gpu == "False":
 	opt.use_gpu = False
 else:
