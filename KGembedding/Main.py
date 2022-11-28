@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+# import ray 
+# from ray import tune
+# from ray.air import session
+# from ray.air.checkpoint import Checkpoint
+# from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -38,7 +38,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.convGAN3 import *
+from NNs.randGAN0 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -49,7 +49,7 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.02,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
 #tuning not implemented
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
@@ -63,12 +63,10 @@ parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus t
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
-parser.add_argument("--load_checkpoint",	type=str,	default="True",	help="Load latest checkpoint before training? (automatically off without raytune)")
-parser.add_argument("--save_checkpoints",	type=str,	default="True",	help="Save checkpoints throughout training? (automatically off without raytune)")
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
 
 # Output options 
@@ -76,22 +74,16 @@ parser.add_argument("--sample_interval",	type=int,  default=500,    help="Iters 
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
+parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
 
+#checkpoint options used and changed later
+opt.load_checkpoint = True
+opt.save_checkpoints = True
+
 #convert "Booleans" to actual bools
-if opt.load_checkpoint == "False":
-	opt.load_checkpoint = False
-else:
-	opt.load_checkpoint = True
-
-if opt.save_checkpoints == "False":
-	opt.save_checkpoints = False
-else:
-	opt.save_checkpoints = True
-
 if opt.use_gpu == "False":
 	opt.use_gpu = False
 else:
@@ -197,9 +189,9 @@ if opt.mode == "test":
 	genFile = open(path_join(genDir, "triples.csv"), 'r')
 	dataToLoad.append((genFile, genData))
 	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
-	genTestData = genReader
-	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
-	validTestData = validReader
+	SDGenData = genReader
+	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
+	SDTestData = testReader
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
@@ -607,11 +599,11 @@ if opt.mode != "tune":
 	elif opt.mode == "test":
 		#test on generated data from last run
 		if opt.use_sdmetrics:
-			print("CategoricalCAP:" + str(CategoricalCAPTest(validTestData, genTestData)))
-			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(validTestData, genTestData)))
-			print("NewRowSynthesis:" + str(NewRowSynthesisTest(validTestData, genTestData, my_metadata_dict)))
-			ProduceQualityReport(validTestData, genTestData, my_metadata_dict)
-		(score, results) = SDS(validData, genData)
+			print("CategoricalCAP:" + str(CategoricalCAPTest(SDTestData, SDGenData)))
+			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(SDTestData, SDGenData)))
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
+			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
+		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
 		(score, results) = SDS(validData, testData)

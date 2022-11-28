@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 class Generator(nn.Module):
-    """A very simple GAN generator"""
+    """A slightly less simple GAN generator"""
     def __init__(self, zSize:int, entitiesN:int, relationsN:int):
         super(Generator, self).__init__()
         self.flatten = nn.Flatten()
@@ -23,7 +23,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    """A very simple GAN discriminator"""
+    """A slightly less simple GAN discriminator"""
     def __init__(self, zSize:int, entitiesN:int, relationsN:int):
         super(Discriminator, self).__init__()
         self.flatten = nn.Flatten()
@@ -36,5 +36,5 @@ class Discriminator(nn.Module):
 
     def forward(self, z):
         # takes a one-hot encoded triple and gives a binary classifications (real/synthetic)
-        tripleEnc = self.model(z)
-        return tripleEnc
+        prediction = self.model(z)
+        return prediction

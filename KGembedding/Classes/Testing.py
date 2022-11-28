@@ -5,8 +5,8 @@ import warnings
 from .Triple import *
 
 # sdmetrics can be outcommented if not using it
-#from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
-#from sdmetrics.reports.single_table import QualityReport
+from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
+from sdmetrics.reports.single_table import QualityReport
 
 
 """

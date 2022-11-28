@@ -33,5 +33,5 @@ class Discriminator(nn.Module):
 
     def forward(self, z):
         # takes a one-hot encoded triple and gives a binary classifications (real/synthetic)
-        tripleEnc = self.model(z)
-        return tripleEnc
+        prediction = self.model(z)
+        return prediction
