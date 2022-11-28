@@ -83,7 +83,7 @@ opt = parser.parse_args()
 opt.load_checkpoint = True
 opt.save_checkpoints = True
 
-#option for nations download (in case something is offline)
+#option for nations  dataset download (in case something is offline)
 opt.dataset_download = True
 
 #convert "Booleans" to actual bools
