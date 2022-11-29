@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-# import ray 
-# from ray import tune
-# from ray.air import session
-# from ray.air.checkpoint import Checkpoint
-# from ray.tune.schedulers import ASHAScheduler
+import ray 
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -49,8 +49,8 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensiona
 parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.02,    help="target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
-#tuning not implemented
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="number of epochs of training")
+#tuning not implemented for these
 parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
 
@@ -63,8 +63,8 @@ parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus t
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
+parser.add_argument("--mode",				type=str,	default="dataTest",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
@@ -74,7 +74,7 @@ parser.add_argument("--sample_interval",	type=int,  default=500,    help="Iters 
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
@@ -466,6 +466,39 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 
 
 
+# --- Data formatting & saving ---
+def save_triples(triples):
+	# make/overwrite generated files 
+	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
+	edgesFile = open(path_join(genDir, "edges.csv"), "w")
+	triplesFile = open(path_join(genDir, "triples.csv"), "w")
+
+	# format & save data 
+	#format data as nodes and edges
+	nodes = entitiesRev
+	edges = triples
+
+	#save
+	nodesFile.write("Id,Label,timeset,modularity_class\n")
+	edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
+	for i in tqdm(range(len(nodes)), desc="save"):
+		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
+
+	nextEdgeID = 0
+	for triple in tqdm(edges, desc="save"):
+		(h, r, t) = (triple.h, triple.r, triple.t)
+		hID, tID = entities[h], entities[t]
+		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
+		nextEdgeID += 1
+		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
+
+	nodesFile.close()
+	edgesFile.close()
+	triplesFile.close()
+
+
+
+
 
 # --- model testing ---
 def test_best_model(result):
@@ -478,8 +511,9 @@ def test_best_model(result):
 	opt.save_checkpoints = False
 	train(config, tune_done=True)
 
-	#generate new triples
-	synth_triples = gen_synth();
+	#generate new triples and save them
+	synth_triples = gen_synth()
+	save_triples(synth_triples)
 
 	#calculate metrics
 	(SDSscore, _) = SDS(synth_triples, testData)
@@ -548,44 +582,12 @@ elif opt.mode == "run":
 
 
 
-# generate final synthetic data for run mode
+# generate final synthetic data for run mode and save it
 syntheticTriples = []
 if opt.mode == "run":
 	syntheticTriples = gen_synth()
+	save_triples(syntheticTriples)
 
-
-
-
-# --- Data formatting & saving  (and maybe synthetic data saving) ---
-
-if opt.mode == "run":
-	# make/overwrite generated files 
-	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
-	edgesFile = open(path_join(genDir, "edges.csv"), "w")
-	triplesFile = open(path_join(genDir, "triples.csv"), "w")
-
-	# format & save data 
-	#format data as nodes and edges
-	nodes = entitiesRev
-	edges = syntheticTriples
-
-	#save
-	nodesFile.write("Id,Label,timeset,modularity_class\n")
-	edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
-	for i in tqdm(range(len(nodes)), desc="save"):
-		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
-
-	nextEdgeID = 0
-	for triple in tqdm(edges, desc="save"):
-		(h, r, t) = (triple.h, triple.r, triple.t)
-		hID, tID = entities[h], entities[t]
-		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
-		nextEdgeID += 1
-		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
-
-	nodesFile.close()
-	edgesFile.close()
-	triplesFile.close()
 
 
 
