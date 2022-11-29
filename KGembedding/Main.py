@@ -407,7 +407,6 @@ def train(config, tune_done=False):
 
 # --- Generating synthetic data ---
 #flip key/value for dictionaries for fast decoding
-genStart = datetime.now()
 entitiesRev = dict()
 relationsRev = dict()
 for key in entities.keys():
@@ -426,6 +425,7 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 		real_latent_dim = generator.model[0].in_features
 
 	syntheticTriples = []
+	genStart = datetime.now()
 
 	columns = opt.tqdm_columns
 	iters = range(ceil(num_triples/opt.batch_size))
