@@ -43,16 +43,16 @@ from NNs.randGAN0 import *
 # Hyperparameters 
 #tuning implemented
 parser = argparse.ArgumentParser()
-parser.add_argument("--lr",         type=float, default=0.0002, help="learning rate")
-parser.add_argument("--batch_size", type=int,   default=64,     help="size of the batches")
-parser.add_argument("--latent_dim", type=int,   default=64,     help="dimensionality of the latent space")
-parser.add_argument("--n_critic",   type=int,   default=2,      help="max. number of training steps for discriminator per iter")
-parser.add_argument("--f_loss_min", type=float, default=0.02,    help="target minimum fake loss for D")
+parser.add_argument("--lr",         type=float, default=0.0002, help="Learning rate")
+parser.add_argument("--batch_size", type=int,   default=64,     help="Size of the batches")
+parser.add_argument("--latent_dim", type=int,   default=64,     help="Dimensionality of the latent space")
+parser.add_argument("--n_critic",   type=int,   default=2,      help="Max. number of training steps for discriminator per iter")
+parser.add_argument("--f_loss_min", type=float, default=0.02,    help="Target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=0,   help="Number of epochs of training")
 #tuning not implemented
-parser.add_argument("--clip_value", type=float, default=-1,   help="lower and upper clip value for disc. weights. (-1 = no clipping)")
-parser.add_argument("--beta1",      type=float, default=0.5,    help="beta1 hyperparameter for Adam optimizer")
+parser.add_argument("--clip_value", type=float, default=-1,   help="Lower and upper clip value for disc. weights. (-1 = no clipping)")
+parser.add_argument("--beta1",      type=float, default=0.5,    help="Beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
@@ -63,17 +63,18 @@ parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus t
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
-#parser.add_argument("--n_cpu",				type=int,   default=8,      help="number of cpu threads to use during batch generation")
+#parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
-parser.add_argument("--use_gpu",			type=str,	default="True",	help="use GPU for training (when without raytune)? (cuda)")
+parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
+parser.add_argument("--disable_download",	type=str,	default="False",	help="Downloads the nations dataset from a GitHub repo")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=500,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
-#parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="epochs between model saves")
-#parser.add_argument("--split_disc_loss",	type=bool,  default=False,    help="whether to split discriminator loss into real/fake")
+#parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="Epochs between model saves")
+#parser.add_argument("--split_disc_loss",	type=str,  default="False",    help="Whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
@@ -83,14 +84,21 @@ opt = parser.parse_args()
 opt.load_checkpoint = True
 opt.save_checkpoints = True
 
-#option for nations  dataset download (in case something is offline)
-opt.dataset_download = True
-
 #convert "Booleans" to actual bools
 if opt.use_gpu == "False":
 	opt.use_gpu = False
 else:
 	opt.use_gpu = True
+
+if opt.disable_download == "False":
+	opt.disable_download = False
+else:
+	opt.disable_download = True
+
+#if opt.split_disc_loss == "False":
+#	opt.split_disc_loss = False
+#else:
+#	opt.split_disc_loss = True
 
 if opt.use_sdmetrics == "False":
 	opt.use_sdmetrics = False
@@ -113,24 +121,6 @@ inDataDir = path_join(dataDir, opt.dataset)
 loss_graphDir = path_join(dataDir, "_loss_graph")
 if not os.path.exists(loss_graphDir):
 	os.makedirs(loss_graphDir)
-
-# Downloads nations dataset
-nationsDatasetDir = path_join(dataDir, 'nations')
-if not os.path.exists(nationsDatasetDir) and opt.dataset_download == True:
-	os.makedirs(nationsDatasetDir)
-
-	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/test.txt'
-	r = requests.get(url, allow_redirects=True)
-	open(path_join(nationsDatasetDir, 'test.txt'), 'wb').write(r.content)
-
-	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/train.txt'
-	r = requests.get(url, allow_redirects=True)
-	open(path_join(nationsDatasetDir, 'train.txt'), 'wb').write(r.content)
-
-	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/valid.txt'
-	r = requests.get(url, allow_redirects=True)
-	open(path_join(nationsDatasetDir, 'valid.txt'), 'wb').write(r.content)
-
 
 # filepath for storing loss graph
 graphDirAndName = path_join(loss_graphDir, "loss_graph.png")
@@ -165,6 +155,23 @@ tune_f_loss_min_max = 1e-1
 
 
 # --- Dataset loading & formatting ---
+# Downloads nations dataset
+nationsDatasetDir = path_join(dataDir, 'nations')
+if not os.path.exists(nationsDatasetDir) and opt.disable_download == False:
+	os.makedirs(nationsDatasetDir)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/test.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'test.txt'), 'wb').write(r.content)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/train.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'train.txt'), 'wb').write(r.content)
+
+	url = 'https://raw.githubusercontent.com/ZhenfengLei/KGDatasets/master/Nations/valid.txt'
+	r = requests.get(url, allow_redirects=True)
+	open(path_join(nationsDatasetDir, 'valid.txt'), 'wb').write(r.content)
+
 trainFile = open(path_join(inDataDir, trainName), 'r')
 validFile = open(path_join(inDataDir, validName), 'r')
 testFile  = open(path_join(inDataDir, testName), 'r')
@@ -253,6 +260,7 @@ discriminator.to(device)
 
 
 def train(config, tune_done=False):
+
 	# make data loaders
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
