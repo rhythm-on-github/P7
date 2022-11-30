@@ -38,7 +38,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.randGAN0 import *
+from NNs.simpGAN1 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -49,13 +49,13 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="Dimensiona
 parser.add_argument("--n_critic",   type=int,   default=2,      help="Max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.02,    help="Target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=1,   help="Number of epochs of training")
+parser.add_argument("--n_epochs",   type=int,   default=2,   help="Number of epochs of training")
 #tuning not implemented for these
 parser.add_argument("--clip_value", type=float, default=-1,   help="Lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="Beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
-parser.add_argument("--tune_n_valid_triples",	type=int,	default=5000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
+parser.add_argument("--tune_n_valid_triples",	type=int,	default=1000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
 parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
@@ -64,18 +64,18 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="dataTest",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
 parser.add_argument("--disable_download",	type=str,	default="False",	help="Downloads the nations dataset from a GitHub repo")
 
 # Output options 
-parser.add_argument("--sample_interval",	type=int,  default=500,    help="Iters between image samples")
+parser.add_argument("--sample_interval",	type=int,  default=5000,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="Epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=str,  default="False",    help="Whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
 parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
@@ -83,6 +83,9 @@ opt = parser.parse_args()
 #checkpoint options used and changed later
 opt.load_checkpoint = True
 opt.save_checkpoints = True
+
+#option for nations  dataset download (in case something is offline)
+opt.dataset_download = True
 
 #convert "Booleans" to actual bools
 if opt.use_gpu == "False":
@@ -251,16 +254,8 @@ testDataEncoder  = Encoder(testData,  entities, entitiesN, relations, relationsN
 # --- Training ---
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-# define generator and discriminator globally so they can be used in other functions aswell
-generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
-discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
 
-generator.to(device)
-discriminator.to(device)
-
-
-def train(config, tune_done=False):
-
+def train(config, gen, disc, Gen, Disc, tune_done=False):
 	# make data loaders
 	validDataloader = torch.utils.data.DataLoader(validDataEncoder, batch_size=config["batch_size"], shuffle=True)
 	testDataloader  = torch.utils.data.DataLoader(testDataEncoder,  batch_size=config["batch_size"], shuffle=True)
@@ -281,24 +276,24 @@ def train(config, tune_done=False):
 
 	trainStart = datetime.now()
 	# setup
-	generator	=		Generator(config["latent_dim"], entitiesN, relationsN)
-	discriminator = Discriminator(config["latent_dim"], entitiesN, relationsN)
+	gen	=	 Gen(config["latent_dim"], entitiesN, relationsN)
+	disc =	Disc(config["latent_dim"], entitiesN, relationsN)
 
 	loss_func = torch.nn.BCELoss()
-	optim_gen =  torch.optim.Adam(generator.parameters(),		lr=config["lr"], betas=(opt.beta1, 0.999))
-	optim_disc = torch.optim.Adam(discriminator.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
+	optim_gen =  torch.optim.Adam(gen.parameters(),		lr=config["lr"], betas=(opt.beta1, 0.999))
+	optim_disc = torch.optim.Adam(disc.parameters(),	lr=config["lr"], betas=(opt.beta1, 0.999)) 
 
 	# Checkpoint restoring
 	if opt.mode == "tune" and opt.load_checkpoint:
 		loaded_checkpoint = session.get_checkpoint()
 		if loaded_checkpoint:
-			discriminator.to('cpu')
-			generator.to('cpu')
+			disc.to('cpu')
+			gen.to('cpu')
 			with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
 				D_state, G_state, D_optimizer_state, G_optimizer_state = torch.load(path_join(loaded_checkpoint_dir, "checkpoint.pt"), map_location=torch.device('cpu'))
-				discriminator.load_state_dict(D_state)
+				disc.load_state_dict(D_state)
 				optim_disc.load_state_dict(D_optimizer_state)
-				generator.load_state_dict(G_state)
+				gen.load_state_dict(G_state)
 				optim_gen.load_state_dict(G_optimizer_state)
 	
 				
@@ -308,8 +303,8 @@ def train(config, tune_done=False):
 	if cuda: device = 'cuda:0'
 	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-	discriminator.to(device)
-	generator.to(device)
+	disc.to(device)
+	gen.to(device)
 
 
 	epochsDone = 0
@@ -350,7 +345,7 @@ def train(config, tune_done=False):
 
 			# train discriminator
 			disc_losses = (real_losses, fake_losses, discriminator_losses)
-			real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, discriminator, generator, optim_disc, loss_func, disc_losses)
+			real_batch_size = train_discriminator(opt, Tensor, batch, fake_data, device, disc, gen, optim_disc, loss_func, disc_losses)
 			D_trains_since_G_train += 1
 
 			# only train generator every n_critic iterations or if the discriminator is overperforming
@@ -358,7 +353,7 @@ def train(config, tune_done=False):
 			if epoch >= 1 or i >= 1:
 				D_overperforming = fake_losses[-1] < config["f_loss_min"]
 			if(D_trains_since_G_train >= config["n_critic"] or D_overperforming or i == 0):
-				train_generator(fake_data, device, discriminator, optim_gen, loss_func, real_batch_size, generator_losses)
+				train_generator(fake_data, device, disc, optim_gen, loss_func, real_batch_size, generator_losses)
 				D_trains_since_G_train = 0
 			else:
 				generator_losses.append(generator_losses[-1])
@@ -388,16 +383,16 @@ def train(config, tune_done=False):
 		if opt.mode == "tune" and opt.save_checkpoints:
 			os.makedirs(path_join(genDir, "my_model"), exist_ok=True)
 			torch.save(
-				(discriminator.to('cpu').state_dict(), generator.to('cpu').state_dict(), optim_disc.state_dict(), optim_gen.state_dict()),
+				(disc.to('cpu').state_dict(), gen.to('cpu').state_dict(), optim_disc.state_dict(), optim_gen.state_dict()),
 				path_join(path_join(genDir, "my_model"), "checkpoint.pt")
 			)
-			discriminator.to(device)
-			generator.to(device)
+			disc.to(device)
+			gen.to(device)
 			checkpoint = Checkpoint.from_directory(path_join(genDir, "my_model"))
 
 			# Calculate SDS score 
 			if opt.mode == "tune":
-				synthData = gen_synth(opt.tune_n_valid_triples, printing=False)
+				synthData = gen_synth(gen, opt.tune_n_valid_triples, printing=False)
 				(score, _) = SDS(validData, synthData, printing=False)
 				session.report({"score": (score)}, checkpoint=checkpoint)
 	
@@ -424,13 +419,13 @@ for key in relations.keys():
 	value = relations[key]
 	relationsRev[value] = key
 
-def gen_synth(num_triples = opt.out_n_triples, printing=True):
+def gen_synth(gen, num_triples = opt.out_n_triples, printing=True):
 	# When raytune is used, the actual latent dim may differ from option
 	real_latent_dim = 0
-	if isinstance(generator.model[0], torch.nn.ConvTranspose1d):
-		real_latent_dim = generator.model[0].in_channels
+	if isinstance(gen.model[0], torch.nn.ConvTranspose1d):
+		real_latent_dim = gen.model[0].in_channels
 	else:
-		real_latent_dim = generator.model[0].in_features
+		real_latent_dim = gen.model[0].in_features
 
 	syntheticTriples = []
 	genStart = datetime.now()
@@ -444,7 +439,7 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 
 		start = datetime.now()
 
-		triplesEnc = generator(z)
+		triplesEnc = gen(z)
 
 		mid = datetime.now()
 
@@ -513,14 +508,20 @@ def test_best_model(result):
 	config = result.config
 	print("\nRerunning best model")
 	print(config)
+	
+	# define generator and discriminator
+	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+	generator.to(device)
+	discriminator.to(device)
 
 	#rerun best model
 	opt.load_checkpoint = False
 	opt.save_checkpoints = False
-	train(config, tune_done=True)
+	train(config, generator, discriminator, Generator, Discriminator, tune_done=True)
 
 	#generate new triples and save them
-	synth_triples = gen_synth()
+	synth_triples = gen_synth(generator)
 	save_triples(synth_triples)
 
 	#calculate metrics
@@ -538,10 +539,21 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 		grace_period=1,
 		reduction_factor=2
 	)
+	
+	# define generator and discriminator
+	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+	generator.to(device)
+	discriminator.to(device)
+
+	gen = ray.put(generator)
+	disc = ray.put(discriminator)
+	genClass = ray.put(Generator)
+	discClass = ray.put(Discriminator)
 
 	tuner = tune.Tuner(
 		tune.with_resources(
-			tune.with_parameters(train),
+			tune.with_parameters(train, gen=gen, disc=disc, Gen=genClass, Disc=discClass),
 			resources={"cpu": 2, "gpu": gpus_per_trial}
 		),
 		tune_config=tune.TuneConfig(
@@ -565,6 +577,7 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	test_best_model(best_result)
 
 #potentially run raytune, otherwise just train once
+syntheticTriples = []
 if opt.mode == "tune":
 	config = {
 		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
@@ -586,17 +599,17 @@ elif opt.mode == "run":
 		"n_critic":		opt.n_critic,
 		"f_loss_min":	opt.f_loss_min,
 	}	
-	train(config)
+	# define generator and discriminator
+	generator	=		Generator(opt.latent_dim, entitiesN, relationsN)
+	discriminator = Discriminator(opt.latent_dim, entitiesN, relationsN)
+	generator.to(device)
+	discriminator.to(device)
 
-
-
-# generate final synthetic data for run mode and save it
-syntheticTriples = []
-if opt.mode == "run":
-	syntheticTriples = gen_synth()
+	train(config, generator, discriminator, Generator, Discriminator)
+	
+	# generate final synthetic data for run mode and save it
+	syntheticTriples = gen_synth(generator)
 	save_triples(syntheticTriples)
-
-
 
 
 
