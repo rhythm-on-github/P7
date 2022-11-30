@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-# import ray 
-# from ray import tune
-# from ray.air import session
-# from ray.air.checkpoint import Checkpoint
-# from ray.tune.schedulers import ASHAScheduler
+import ray 
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -49,8 +49,8 @@ parser.add_argument("--latent_dim", type=int,   default=64,     help="Dimensiona
 parser.add_argument("--n_critic",   type=int,   default=2,      help="Max. number of training steps for discriminator per iter")
 parser.add_argument("--f_loss_min", type=float, default=0.02,    help="Target minimum fake loss for D")
 #tuning not explicitly implemented
-parser.add_argument("--n_epochs",   type=int,   default=0,   help="Number of epochs of training")
-#tuning not implemented
+parser.add_argument("--n_epochs",   type=int,   default=1,   help="Number of epochs of training")
+#tuning not implemented for these
 parser.add_argument("--clip_value", type=float, default=-1,   help="Lower and upper clip value for disc. weights. (-1 = no clipping)")
 parser.add_argument("--beta1",      type=float, default=0.5,    help="Beta1 hyperparameter for Adam optimizer")
 
@@ -415,7 +415,6 @@ def train(config, tune_done=False):
 
 # --- Generating synthetic data ---
 #flip key/value for dictionaries for fast decoding
-genStart = datetime.now()
 entitiesRev = dict()
 relationsRev = dict()
 for key in entities.keys():
@@ -434,6 +433,7 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 		real_latent_dim = generator.model[0].in_features
 
 	syntheticTriples = []
+	genStart = datetime.now()
 
 	columns = opt.tqdm_columns
 	iters = range(ceil(num_triples/opt.batch_size))
@@ -474,6 +474,39 @@ def gen_synth(num_triples = opt.out_n_triples, printing=True):
 
 
 
+# --- Data formatting & saving ---
+def save_triples(triples):
+	# make/overwrite generated files 
+	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
+	edgesFile = open(path_join(genDir, "edges.csv"), "w")
+	triplesFile = open(path_join(genDir, "triples.csv"), "w")
+
+	# format & save data 
+	#format data as nodes and edges
+	nodes = entitiesRev
+	edges = triples
+
+	#save
+	nodesFile.write("Id,Label,timeset,modularity_class\n")
+	edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
+	for i in tqdm(range(len(nodes)), desc="save"):
+		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
+
+	nextEdgeID = 0
+	for triple in tqdm(edges, desc="save"):
+		(h, r, t) = (triple.h, triple.r, triple.t)
+		hID, tID = entities[h], entities[t]
+		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
+		nextEdgeID += 1
+		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
+
+	nodesFile.close()
+	edgesFile.close()
+	triplesFile.close()
+
+
+
+
 
 # --- model testing ---
 def test_best_model(result):
@@ -486,8 +519,9 @@ def test_best_model(result):
 	opt.save_checkpoints = False
 	train(config, tune_done=True)
 
-	#generate new triples
-	synth_triples = gen_synth();
+	#generate new triples and save them
+	synth_triples = gen_synth()
+	save_triples(synth_triples)
 
 	#calculate metrics
 	(SDSscore, _) = SDS(synth_triples, testData)
@@ -556,44 +590,12 @@ elif opt.mode == "run":
 
 
 
-# generate final synthetic data for run mode
+# generate final synthetic data for run mode and save it
 syntheticTriples = []
 if opt.mode == "run":
 	syntheticTriples = gen_synth()
+	save_triples(syntheticTriples)
 
-
-
-
-# --- Data formatting & saving  (and maybe synthetic data saving) ---
-
-if opt.mode == "run":
-	# make/overwrite generated files 
-	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
-	edgesFile = open(path_join(genDir, "edges.csv"), "w")
-	triplesFile = open(path_join(genDir, "triples.csv"), "w")
-
-	# format & save data 
-	#format data as nodes and edges
-	nodes = entitiesRev
-	edges = syntheticTriples
-
-	#save
-	nodesFile.write("Id,Label,timeset,modularity_class\n")
-	edgesFile.write("Source,Target,Type,Id,Label,timeset,Weight\n")
-	for i in tqdm(range(len(nodes)), desc="save"):
-		nodesFile.write(str(i) + "," + nodes[i] + ",,1\n")
-
-	nextEdgeID = 0
-	for triple in tqdm(edges, desc="save"):
-		(h, r, t) = (triple.h, triple.r, triple.t)
-		hID, tID = entities[h], entities[t]
-		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
-		nextEdgeID += 1
-		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
-
-	nodesFile.close()
-	edgesFile.close()
-	triplesFile.close()
 
 
 
