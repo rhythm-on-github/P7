@@ -5,7 +5,7 @@ import warnings
 from .Triple import *
 
 # sdmetrics can be outcommented if not using it
-#from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis, CategoricalZeroCAP
+#from sdmetrics.single_table import CategoricalCAP, NewRowSynthesis
 #from sdmetrics.reports.single_table import QualityReport
 
 
@@ -271,21 +271,21 @@ def SDS(A: [Triple], B: [Triple], printing=True):
 	return (score, results)
 
 
-def CategoricalCAPTest(real_data, synthetic_data): 
+def CategoricalCAPHead(real_data, synthetic_data): 
 	return CategoricalCAP.compute(
 				real_data=real_data, 
 				synthetic_data=synthetic_data, 
-				key_fields=['node1', 'node2'], 
-				sensitive_fields=['relation']
+				key_fields=['relation', 'tail'], 
+				sensitive_fields=['head']
 				)
 
-def CategoricalZeroCAPTest(real_data, synthetic_data):
-	return CategoricalZeroCAP.compute(
+def CategoricalCAPTail(real_data, synthetic_data): 
+	return CategoricalCAP.compute(
 				real_data=real_data, 
 				synthetic_data=synthetic_data, 
-				key_fields=['node1', 'node2'], 
-				sensitive_fields=['relation']
-			   )
+				key_fields=['head', 'relation'], 
+				sensitive_fields=['tail']
+				)
 
 def NewRowSynthesisTest(real_data, synthetic_data, metadata_dict):
 	return NewRowSynthesis.compute(

@@ -625,8 +625,8 @@ if opt.mode != "tune":
 	elif opt.mode == "test":
 		#test on generated data from last run
 		if opt.use_sdmetrics:
-			print("CategoricalCAP:" + str(CategoricalCAPTest(SDTestData, SDGenData)))
-			print("CategoricalZeroCAP:" + str(CategoricalZeroCAPTest(SDTestData, SDGenData)))
+			print("CategoricalCAP (Head): " + str(CategoricalCAPHead(SDTestData, SDGenData)))
+			print("CategoricalCAP (Tail): " + str(CategoricalCAPTail(SDTestData, SDGenData)))
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
 			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
 		(score, results) = SDS(testData, genData)
