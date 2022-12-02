@@ -1,6 +1,6 @@
 {
 "fields": {
-	  "node1": {
+	  "head": {
 	  	"type": "categorical",
 	  	"subtype": "string"
   	},
@@ -8,7 +8,7 @@
 			"type": "categorical",
 			"subtype": "string"
 		},
-	  "node2": {
+	  "tail": {
 		  "type": "categorical",
 		  "subtype": "string"
 	  }

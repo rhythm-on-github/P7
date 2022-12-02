@@ -22,17 +22,17 @@ import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
 import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+#from ray import tune
+#from ray.air import session
+#from ray.air.checkpoint import Checkpoint
+#from ray.tune.schedulers import ASHAScheduler
 
 # local imports
-from Classes.Triple import *
-from Classes.Encoding import *
-from Classes.Training import *
-from Classes.Testing import *
-from Classes.Graph import *
+#from Classes.Triple import *
+#from Classes.Encoding import *
+#from Classes.Training import *
+#from Classes.Testing import *
+#from Classes.Graph import *
 
 
 
@@ -625,8 +625,7 @@ if opt.mode != "tune":
 	elif opt.mode == "test":
 		#test on generated data from last run
 		if opt.use_sdmetrics:
-			print("CategoricalCAP (Head): " + str(CategoricalCAPHead(SDTestData, SDGenData)))
-			print("CategoricalCAP (Tail): " + str(CategoricalCAPTail(SDTestData, SDGenData)))
+			print("CategoricalCAP: " + str((CategoricalCAPHead(SDTestData, SDGenData)+CategoricalCAPTail(SDTestData, SDGenData))/2))
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
 			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
 		(score, results) = SDS(testData, genData)
