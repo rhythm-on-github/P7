@@ -22,17 +22,17 @@ import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
 import ray 
-#from ray import tune
-#from ray.air import session
-#from ray.air.checkpoint import Checkpoint
-#from ray.tune.schedulers import ASHAScheduler
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
-#from Classes.Triple import *
-#from Classes.Encoding import *
-#from Classes.Training import *
-#from Classes.Testing import *
-#from Classes.Graph import *
+from Classes.Triple import *
+from Classes.Encoding import *
+from Classes.Training import *
+from Classes.Testing import *
+from Classes.Graph import *
 
 
 
