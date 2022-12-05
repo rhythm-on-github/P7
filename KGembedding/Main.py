@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+#import ray 
+#from ray import tune
+#from ray.air import session
+#from ray.air.checkpoint import Checkpoint
+#from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -64,7 +64,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="dataTest",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
@@ -76,7 +76,7 @@ parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total tex
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="Epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=str,  default="False",    help="Whether to split discriminator loss into real/fake")
 parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
-parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
+parser.add_argument("--use_sdmetrics",		type=str,	default="True",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
 
@@ -205,6 +205,19 @@ if opt.mode == "test":
 	SDGenData = genReader
 	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
 	SDTestData = testReader
+	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
+	SDValidData = validReader
+	metadataDir = path_join(workDir.parent.resolve(), "metadata")
+	with open(path_join(metadataDir, 'metadatafile.json')) as f:
+		my_metadata_dict = json.load(f)
+
+if opt.mode == "dataTest":
+	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
+	SDGenData = genReader
+	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
+	SDTestData = testReader
+	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
+	SDValidData = validReader
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
@@ -631,6 +644,10 @@ if opt.mode != "tune":
 		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
+		if opt.use_sdmetrics:
+			print("CategoricalCAP: " + str((CategoricalCAPHead(SDValidData, SDTestData)+CategoricalCAPTail(SDValidData, SDTestData))/2))
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDValidData, SDTestData, my_metadata_dict)))
+			ProduceQualityReport(SDValidData, SDTestData, my_metadata_dict)
 		(score, results) = SDS(validData, testData)
 
 	print("\nDetailed SDS results: (lower = better)")
