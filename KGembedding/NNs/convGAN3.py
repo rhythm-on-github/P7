@@ -8,13 +8,13 @@ class Generator(nn.Module):
         self.flatten = nn.Flatten()
         self.model = nn.Sequential(
             # state size: 1-wide, zSize channels
-            nn.ConvTranspose1d(zSize, 20, 512, 1, 0, bias=False),
+            nn.ConvTranspose1d(zSize, 10, 512, 1, 0, bias=False),
             # state size: 512-wide, 10ch
             nn.ReLU(),
-            nn.ConvTranspose1d(20, 10, 32, 2, 15, bias=False), #padding = (kernel_size/2) - 1
-            # state size: 1024-wide, 10ch
+            nn.ConvTranspose1d(10, 2, 32, 2, 15, bias=False), #padding = (kernel_size/2) - 1
+            # state size: 1024-wide, 2ch
             nn.ReLU(),
-            nn.Conv1d(10, entitiesN + relationsN + entitiesN, 1024, 1, 0, bias=False),
+            nn.Conv1d(2, entitiesN + relationsN + entitiesN, 1024, 1, 0, bias=False),
             # state size: 1-wide, entN+relN+entN channels
             nn.BatchNorm1d(entitiesN + relationsN + entitiesN),
             nn.Tanh()

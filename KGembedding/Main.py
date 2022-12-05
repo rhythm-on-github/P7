@@ -38,7 +38,7 @@ from Classes.Graph import *
 
 # --- Settings ---
 # NN choice 
-from NNs.simpGAN1 import *
+from NNs.convGAN3 import *
 
 # Hyperparameters 
 #tuning implemented
@@ -55,37 +55,34 @@ parser.add_argument("--clip_value", type=float, default=-1,   help="Lower and up
 parser.add_argument("--beta1",      type=float, default=0.5,    help="Beta1 hyperparameter for Adam optimizer")
 
 # Hyperparameter tuning options
-parser.add_argument("--tune_n_valid_triples",	type=int,	default=1000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
-parser.add_argument("--tune_samples",			type=int,	default=5,	help="Total samples taken with raytune")
+parser.add_argument("--tune_n_valid_triples",	type=int,	default=10000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
+parser.add_argument("--tune_samples",			type=int,	default=1000,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
 parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How large the subset of train data should be during tuning")
 
 # General options
-parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
+parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
-parser.add_argument("--disable_download",	type=str,	default="False",	help="Downloads the nations dataset from a GitHub repo")
+parser.add_argument("--disable_download",	type=str,	default="True",	help="Downloads the nations dataset from a GitHub repo")
 
 # Output options 
 parser.add_argument("--sample_interval",	type=int,  default=5000,    help="Iters between image samples")
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="Epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=str,  default="False",    help="Whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
-parser.add_argument("--use_sdmetrics",		type=str,	default="True",	help="Use sdmetrics for evaluation in test mode?")
+parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
+parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
 
 #checkpoint options used and changed later
 opt.load_checkpoint = True
 opt.save_checkpoints = True
-
-#option for nations  dataset download (in case something is offline)
-opt.dataset_download = True
 
 #convert "Booleans" to actual bools
 if opt.use_gpu == "False":
