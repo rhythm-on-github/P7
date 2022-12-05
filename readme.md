@@ -48,6 +48,7 @@ Wide range of options
 ### Setup
 To get startet we need to install some dependencies, this can be done with this command.
 
+Note: That on other OS's than Linux, packages might be different (such as PyTorch), if which case, consult the developers website, for correct installation.
 ```
 pip install -r requirements.txt
 ```
