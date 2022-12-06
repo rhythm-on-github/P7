@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-#import ray 
-#from ray import tune
-#from ray.air import session
-#from ray.air.checkpoint import Checkpoint
-#from ray.tune.schedulers import ASHAScheduler
+import ray 
+from ray import tune
+from ray.air import session
+from ray.air.checkpoint import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -436,6 +436,12 @@ def gen_synth(gen, num_triples = opt.out_n_triples, printing=True):
 		real_latent_dim = gen.model[0].in_channels
 	else:
 		real_latent_dim = gen.model[0].in_features
+
+	cuda = opt.use_gpu and torch.cuda.is_available()
+	device = 'cpu'
+	if cuda: device = 'cuda:0'
+	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+	gen.to(device)
 
 	syntheticTriples = []
 	genStart = datetime.now()
