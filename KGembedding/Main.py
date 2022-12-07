@@ -21,11 +21,11 @@ from math import floor, ceil
 import requests
 
 #ray imports can be outcommented if not using raytune / checkpoints
-import ray 
-from ray import tune
-from ray.air import session
-from ray.air.checkpoint import Checkpoint
-from ray.tune.schedulers import ASHAScheduler
+#import ray 
+#from ray import tune
+#from ray.air import session
+#from ray.air.checkpoint import Checkpoint
+#from ray.tune.schedulers import ASHAScheduler
 
 # local imports
 from Classes.Triple import *
@@ -658,10 +658,10 @@ if opt.mode != "tune":
 		#test difference between test and validation data
 		if opt.use_sdmetrics:
 			print("Calculating CategoricalCAP...")
-			print("CategoricalCAP: " + str((CategoricalCAPHead(SDValidData, SDTestData)+CategoricalCAPTail(SDValidData, SDTestData))/2))
+			print("CategoricalCAP: " + str((CategoricalCAPHead(SDFullDBData, SDValidData)+CategoricalCAPTail(SDFullDBData, SDValidData))/2))
 			print("Calculating NewRowSynthesis...")
-			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDValidData, SDTestData, my_metadata_dict)))
-			ProduceQualityReport(SDValidData, SDTestData, my_metadata_dict)
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDFullDBData, SDValidData, my_metadata_dict)))
+			ProduceQualityReport(SDFullDBData, SDValidData, my_metadata_dict)
 		(score, results) = SDS(validData, testData)
 
 	print("\nDetailed SDS results: (lower = better)")
