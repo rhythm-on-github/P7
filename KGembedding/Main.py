@@ -56,7 +56,7 @@ parser.add_argument("--beta1",      type=float, default=0.5,    help="Beta1 hype
 
 # Hyperparameter tuning options
 parser.add_argument("--tune_n_valid_triples",	type=int,	default=10000,	help="With raytune, no. of triples to generate for validation (rounded up to nearest mult. of batch size)")
-parser.add_argument("--tune_samples",			type=int,	default=1000,	help="Total samples taken with raytune")
+parser.add_argument("--tune_samples",			type=int,	default=10,	help="Total samples taken with raytune")
 parser.add_argument("--max_concurrent_samples",	type=int,	default=2,	help="Max. samples to run at the same time with raytune. (use None for unlimited)")
 parser.add_argument("--tune_max_epochs",		type=int,	default=2,	help="How many epochs at most per run with raytune")
 parser.add_argument("--tune_gpus",				type=int,	default=1,	help="How many gpus to reserve per trial with raytune (does not influence total no. of gpus used)")
@@ -64,7 +64,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="tune",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
 #parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
@@ -491,6 +491,7 @@ def save_triples(triples):
 	nodesFile = open(path_join(genDir, "nodes.csv"), "w")
 	edgesFile = open(path_join(genDir, "edges.csv"), "w")
 	triplesFile = open(path_join(genDir, "triples.csv"), "w")
+	triples_noRelFile = open(path_join(genDir, "triples_noRel.csv"), "w")
 
 	# format & save data 
 	#format data as nodes and edges
@@ -510,6 +511,7 @@ def save_triples(triples):
 		edgesFile.write(str(hID) + "," + str(tID) + ",Directed," + str(nextEdgeID) + "," + r + ",,1\n")
 		nextEdgeID += 1
 		triplesFile.write(h + "\t" + r + "\t" + t + "\n")
+		triples_noRelFile.write(h + "\t" + t + "\n")
 
 	nodesFile.close()
 	edgesFile.close()
@@ -640,6 +642,7 @@ if opt.mode != "tune":
 		(score, results) = SDS(testData, syntheticTriples)
 	elif opt.mode == "test":
 		#test on generated data from last run
+		# save_triples(genData) - used to generate relation-less versions of datasets for Gephi viewing
 		if opt.use_sdmetrics:
 			print("CategoricalCAP: " + str((CategoricalCAPHead(SDTestData, SDGenData)+CategoricalCAPTail(SDTestData, SDGenData))/2))
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
