@@ -65,7 +65,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 # General options
 parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
 parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
-#parser.add_argument("--n_cpu",				type=int,   default=8,      help="Number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu",				type=int,   default=2,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
 parser.add_argument("--disable_download",	type=str,	default="True",	help="Downloads the nations dataset from a GitHub repo")
@@ -140,16 +140,16 @@ if cuda: device = 'cuda:0'
 
 #--- Search space settings
 # Learning rate
-tune_lr_min = 1e-4
-tune_lr_max = 1e-1
+tune_lr_min = 1e-4 #default: 1e-4
+tune_lr_max = 1e-1 #default: 1e-1
 
-tune_batch_sizes = [16, 32, 64, 128, 256]
-tune_latent_dims = [32, 64, 128, 256, 512]
+tune_batch_sizes = [16, 32, 64, 128, 256] #default: [16, 32, 64, 128, 256]
+tune_latent_dims = [32, 64, 128, 256, 512] #default: [32, 64, 128, 256, 512]
 
-tune_n_critics = [1, 2, 3]
+tune_n_critics = [1, 2, 3] #default: [1, 2, 3]
 
-tune_f_loss_min_min = 1e-6
-tune_f_loss_min_max = 1e-1
+tune_f_loss_min_min = 1e-6 #default: 1e-6
+tune_f_loss_min_max = 1e-1 #default: 1e-1
 
 
 
@@ -557,7 +557,7 @@ def test_best_model(result):
 
 
 # --- hyperparameter tuning ---
-def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
+def main(config, num_samples=10, max_num_epochs=10, cpus_per_trial=1, gpus_per_trial=2):
 	scheduler = ASHAScheduler(
 		max_t=max_num_epochs,
 		grace_period=1,
@@ -578,7 +578,7 @@ def main(config, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
 	tuner = tune.Tuner(
 		tune.with_resources(
 			tune.with_parameters(train, gen=gen, disc=disc, Gen=genClass, Disc=discClass),
-			resources={"cpu": 2, "gpu": gpus_per_trial}
+			resources={"cpu": cpus_per_trial, "gpu": gpus_per_trial}
 		),
 		tune_config=tune.TuneConfig(
 			metric="score",
@@ -612,7 +612,7 @@ if opt.mode == "tune":
 		"n_critic":		tune.choice(tune_n_critics),
 		"f_loss_min":	tune.loguniform(tune_f_loss_min_min, tune_f_loss_min_max),
 	}
-	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, gpus_per_trial=opt.tune_gpus)
+	main(config, num_samples=opt.tune_samples, max_num_epochs=opt.tune_max_epochs, cpus_per_trial=opt.n_cpu, gpus_per_trial=opt.tune_gpus)
 elif opt.mode == "run":
 	config = {
 		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
