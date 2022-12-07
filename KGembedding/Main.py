@@ -75,8 +75,8 @@ parser.add_argument("--sample_interval",	type=int,  default=5000,    help="Iters
 parser.add_argument("--tqdm_columns",		type=int,  default=60,    help="Total text columns for tqdm loading bars")
 #parser.add_argument("--epochs_per_save",	type=int,  default=5,    help="Epochs between model saves")
 #parser.add_argument("--split_disc_loss",	type=str,  default="False",    help="Whether to split discriminator loss into real/fake")
-parser.add_argument("--out_n_triples",		type=int,	default=100000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
-parser.add_argument("--use_sdmetrics",		type=str,	default="False",	help="Use sdmetrics for evaluation in test mode?")
+parser.add_argument("--out_n_triples",		type=int,	default=10000,	help="Number of triples to generate after training (rounded up to nearest mult. of batch size)")
+parser.add_argument("--use_sdmetrics",		type=str,	default="True",	help="Use sdmetrics for evaluation in test mode?")
 
 opt = parser.parse_args()
 
@@ -198,22 +198,25 @@ genData = []
 if opt.mode == "test":
 	genFile = open(path_join(genDir, "triples.csv"), 'r')
 	dataToLoad.append((genFile, genData))
-	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
+	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t', names=['head','relation','tail'])
 	SDGenData = genReader
-	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
+	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t', names=['head','relation','tail'])
 	SDTestData = testReader
-	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
+	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t', names=['head','relation','tail'])
 	SDValidData = validReader
+	trainReader = pd.read_csv(path_join(inDataDir, trainName), sep='\t', names=['head','relation','tail'])
+	SDTrainData = trainReader
+	SDFullDBData = SDTestData.append(SDValidData.append(SDTrainData, ignore_index=True), ignore_index=True)
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
 
 if opt.mode == "dataTest":
-	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t')
+	genReader = pd.read_csv(path_join(genDir, "triples.csv"), sep='\t', names=['head','relation','tail'])
 	SDGenData = genReader
-	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t')
+	testReader = pd.read_csv(path_join(inDataDir, testName), sep='\t', names=['head','relation','tail'])
 	SDTestData = testReader
-	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t')
+	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t', names=['head','relation','tail'])
 	SDValidData = validReader
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
@@ -644,14 +647,19 @@ if opt.mode != "tune":
 		#test on generated data from last run
 		# save_triples(genData) - used to generate relation-less versions of datasets for Gephi viewing
 		if opt.use_sdmetrics:
-			print("CategoricalCAP: " + str((CategoricalCAPHead(SDTestData, SDGenData)+CategoricalCAPTail(SDTestData, SDGenData))/2))
-			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDTestData, SDGenData, my_metadata_dict)))
-			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
+			print("Calculating CategoricalCAP...")
+			print("CategoricalCAP: " + str((CategoricalCAPHead(SDFullDBData, SDGenData)+CategoricalCAPTail(SDFullDBData, SDGenData))/2))
+			print("Calculating NewRowSynthesis...")
+			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDFullDBData, SDGenData, my_metadata_dict)))
+			print("Calculating QualityReport...")
+			ProduceQualityReport(SDFullDBData, SDGenData, my_metadata_dict)
 		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
 		if opt.use_sdmetrics:
+			print("Calculating CategoricalCAP...")
 			print("CategoricalCAP: " + str((CategoricalCAPHead(SDValidData, SDTestData)+CategoricalCAPTail(SDValidData, SDTestData))/2))
+			print("Calculating NewRowSynthesis...")
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDValidData, SDTestData, my_metadata_dict)))
 			ProduceQualityReport(SDValidData, SDTestData, my_metadata_dict)
 		(score, results) = SDS(validData, testData)
