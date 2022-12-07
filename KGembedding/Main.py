@@ -218,6 +218,9 @@ if opt.mode == "dataTest":
 	SDTestData = testReader
 	validReader = pd.read_csv(path_join(inDataDir, validName), sep='\t', names=['head','relation','tail'])
 	SDValidData = validReader
+	trainReader = pd.read_csv(path_join(inDataDir, trainName), sep='\t', names=['head','relation','tail'])
+	SDTrainData = trainReader
+	SDFullDBData = SDTestData.append(SDValidData.append(SDTrainData, ignore_index=True), ignore_index=True)
 	metadataDir = path_join(workDir.parent.resolve(), "metadata")
 	with open(path_join(metadataDir, 'metadatafile.json')) as f:
 		my_metadata_dict = json.load(f)
