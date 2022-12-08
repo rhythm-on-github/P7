@@ -64,7 +64,7 @@ parser.add_argument("--tune_subset_size",		type=float,	default=0.1,	help="How la
 
 # General options
 parser.add_argument("--dataset",			type=str,	default="FB15K237",	help="Which dataset folder to use as input")
-parser.add_argument("--mode",				type=str,	default="run",	help="Which thing to do, overall (run/test/tune/dataTest)")
+parser.add_argument("--mode",				type=str,	default="test",	help="Which thing to do, overall (run/test/tune/dataTest)")
 parser.add_argument("--n_cpu",				type=int,   default=2,      help="Number of cpu threads to use during batch generation")
 #"Booleans"
 parser.add_argument("--use_gpu",			type=str,	default="True",	help="Use GPU for training (when without raytune)? (cuda)")
@@ -655,7 +655,7 @@ if opt.mode != "tune":
 			print("Calculating NewRowSynthesis...")
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDFullDBData, SDGenData, my_metadata_dict)))
 			print("Calculating QualityReport...")
-			ProduceQualityReport(SDFullDBData, SDGenData, my_metadata_dict)
+			ProduceQualityReport(SDTestData, SDGenData, my_metadata_dict)
 		(score, results) = SDS(testData, genData)
 	elif opt.mode == "dataTest":
 		#test difference between test and validation data
@@ -664,7 +664,7 @@ if opt.mode != "tune":
 			print("CategoricalCAP: " + str((CategoricalCAPHead(SDFullDBData, SDValidData)+CategoricalCAPTail(SDFullDBData, SDValidData))/2))
 			print("Calculating NewRowSynthesis...")
 			print("NewRowSynthesis:" + str(NewRowSynthesisTest(SDFullDBData, SDValidData, my_metadata_dict)))
-			ProduceQualityReport(SDFullDBData, SDValidData, my_metadata_dict)
+			ProduceQualityReport(SDTestData, SDValidData, my_metadata_dict)
 		(score, results) = SDS(validData, testData)
 
 	print("\nDetailed SDS results: (lower = better)")
