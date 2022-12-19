@@ -1,12 +1,6 @@
 # POGGAN(POwerful Graph GAN)
 
-```
-    ____  ____  _______________    _   __
-   / __ \/ __ \/ ____/ ____/   |  / | / /
-  / /_/ / / / / / __/ / __/ /| | /  |/ / 
- / ____/ /_/ / /_/ / /_/ / ___ |/ /|  /  
-/_/    \____/\____/\____/_/  |_/_/ |_/  
-```
+![POGGAN Logo](https://github.com/rhythm-on-github/P7/blob/main/poggan.png)
 
 
 A knowledge graph generator with a plethora of options
@@ -105,7 +99,7 @@ The paper can be found [here](https://www.overleaf.com/project/6332b13b23a385a2e
 We are a group of Computer Science students from 7th semester, who were tasked at creating "secure, scalable and usable systems".
 
 ## Credits
-Our thanks goes out to these libraries and datasets
+Our thanks goes out to these libraries datasets and the logo
 
 [Pytorch](https://github.com/pytorch/pytorch) and their [paper](https://arxiv.org/abs/1912.01703) for providing a general framework for machine learning
 
@@ -116,6 +110,8 @@ Our thanks goes out to these libraries and datasets
 [AMIE](https://github.com/lajus/amie) and their [paper](https://suchanek.name/work/publications/eswc-2020-amie-3.pdf) for rule inferencing
 
 The Nations dataset [ZhenfengLei/KGDatasets](https://github.com/ZhenfengLei/KGDatasets)
+
+The POGGAN logo [@Shiosei](https://twitter.com/Shiosei_)
 
 
 ## Licence
