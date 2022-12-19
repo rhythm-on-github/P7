@@ -22,11 +22,10 @@ A knowledge graph generator with a plethora of options
 
 ## Features
 Multiple modes to run the dataset
-   - generate - simply generates triples
    - run - trains a model, generates and runs SDS
    - test - loads and tests all tests
    - tune - Uses RayTune, to optimize hyperparameters within a given search space, generates synth data and runs SDS
-   - datatest - loads data compare valid vs test for SDS
+   - dataTest - loads data compare valid vs test for SDS
 
 Wide range of options
     - Support for multiple workers thanks to RayTune
@@ -40,14 +39,12 @@ Wide range of options
 ## Getting Started
 
 ### Setup
-To get startet we need to install some dependencies, this can be done with this command.
+To get started we need to install some dependencies. This can be done with the following command.
 
-Note: That on other OS's than Linux, packages might be different (such as PyTorch), if which case, consult the developers website, for correct installation.
+Note: On other OS's than Linux, packages might be different (such as PyTorch), in which case consult the developers website for correct installation.
 ```
 pip install -r requirements.txt
 ```
-
-Download dataset from ...
 
 
 ### First run
@@ -66,37 +63,38 @@ where [mode] is one of the modes listed above
 
 ### Settings
 
-You can change the default dataset(and much more!), by changing the string in default in Main.py to another dataset in same folder 
+You can change the default dataset (and much more!) by changing the string in default in Main.py to another dataset in the same folder 
 
 ```python
 parser.add_argument("--dataset",			type=str,	default="nations",	help="Which dataset folder to use as input")
 ```
 
-If you do not want the nations dataset or if you and/or github is offline, the download can be disabled with the following options.
+If you do not want the nations dataset or if you are offline, the download can be disabled with the following option:
 ```python
 opt.dataset_download = False
 ```
 
-You can also change the hyperparameters search space and and run modes parameters in Main.py
+You can also change the hyperparameter search space and more such as run modes parameters in Main.py
 ```python
-#potentially run raytune, otherwise just train once
-if opt.mode == "tune":
-	config = {
-		#"l1":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		#"l2":			tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-		"lr":			tune.loguniform(1e-4, 1e-1),
-		"batch_size":	tune.choice([16, 32, 64, 128, 256]),
-		"latent_dim":	tune.choice([32, 64, 128, 256, 512]),
-		"n_critic":		tune.choice([1, 2, 3]),
-		"f_loss_min":	tune.loguniform(1e-6, 1e-1),
-	}
+#--- Search space settings
+# Learning rate
+tune_lr_min = 1e-4 #default: 1e-4
+tune_lr_max = 1e-1 #default: 1e-1
+
+tune_batch_sizes = [16, 32, 64, 128, 256] #default: [16, 32, 64, 128, 256]
+tune_latent_dims = [32, 64, 128, 256, 512] #default: [32, 64, 128, 256, 512]
+
+tune_n_critics = [1, 2, 3] #default: [1, 2, 3]
+
+tune_f_loss_min_min = 1e-6 #default: 1e-6
+tune_f_loss_min_max = 1e-1 #default: 1e-1
 ```
 
 ## Paper
 The paper can be found [here](https://www.overleaf.com/project/6332b13b23a385a2ea10c941) !!change link when its done!!
 
 ## The Team
-We are a group of Computer Science students from 7th semester, who were tasked at creating "secure, scalable and usable systems".
+We are a group of 7th semester Computer Science students from Aalborg University, who were tasked at creating "secure, scalable and usable systems".
 
 ## Credits
 Our thanks goes out to these libraries datasets and the logo
@@ -105,7 +103,7 @@ Our thanks goes out to these libraries datasets and the logo
 
 [Raytune](https://github.com/ray-project/ray/tree/master/python/ray/tune) and their [paper](https://arxiv.org/abs/1807.05118) for providing a framework for hyperparameter tuning
 
-[SDMetrics](https://github.com/sdv-dev/SDMetrics) for providing many metrics used to evaluate the quality of the produced output
+[SDMetrics](https://github.com/sdv-dev/SDMetrics) for providing some of the metrics used to evaluate the quality of the produced output
 
 [AMIE](https://github.com/lajus/amie) and their [paper](https://suchanek.name/work/publications/eswc-2020-amie-3.pdf) for rule inferencing
 
